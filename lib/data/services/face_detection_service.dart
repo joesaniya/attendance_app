@@ -126,11 +126,16 @@ class FaceDetectionService {
     double bestScore = 0;
 
     for (final employee in employees) {
-      if (employee.faceDescriptor == null ||
-          employee.faceDescriptor!.isEmpty) continue;
+      if (employee.faceDescriptor == null || employee.faceDescriptor!.isEmpty)
+        continue;
 
-      final score = _compareFaceDescriptors(descriptor, employee.faceDescriptor!);
-      print('[FaceDetection] ${employee.name} score: ${score.toStringAsFixed(3)}');
+      final score = _compareFaceDescriptors(
+        descriptor,
+        employee.faceDescriptor!,
+      );
+      print(
+        '[FaceDetection] ${employee.name} score: ${score.toStringAsFixed(3)}',
+      );
 
       if (score > bestScore) {
         bestScore = score;
@@ -207,10 +212,10 @@ class FaceDetectionService {
       final imageSize = Size(image.width.toDouble(), image.height.toDouble());
       final imageRotation =
           InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
-              InputImageRotation.rotation0deg;
+          InputImageRotation.rotation0deg;
       final inputImageFormat =
           InputImageFormatValue.fromRawValue(image.format.raw) ??
-              InputImageFormat.nv21;
+          InputImageFormat.nv21;
       return InputImage.fromBytes(
         bytes: bytes,
         metadata: InputImageMetadata(
