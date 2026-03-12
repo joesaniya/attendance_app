@@ -16,15 +16,11 @@ class EmployeeService {
     return _firestore
         .collection(AppConstants.employeesCollection)
         .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) {
-      final list = snap.docs
-          .map((doc) => EmployeeModel.fromMap(doc.data(), doc.id))
-          .toList();
-      // Sort in-memory so no composite index is required in Firestore
-      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return list;
-    });
+        .map((snap) => snap.docs
+            .map((doc) => EmployeeModel.fromMap(doc.data(), doc.id))
+            .toList());
   }
 
   Future<List<EmployeeModel>> getAllEmployees() async {
@@ -32,11 +28,9 @@ class EmployeeService {
         .collection(AppConstants.employeesCollection)
         .where('isActive', isEqualTo: true)
         .get();
-    final list = snap.docs
+    return snap.docs
         .map((doc) => EmployeeModel.fromMap(doc.data(), doc.id))
         .toList();
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return list;
   }
 
   Future<EmployeeModel?> getEmployeeById(String id) async {
@@ -72,6 +66,7 @@ class EmployeeService {
     required String createdBy,
     required String createdByRole,
     required String createdByName,
+    String? faceDescriptor,
   }) async {
     try {
       final employeeId = _uuid.v4();
@@ -91,6 +86,7 @@ class EmployeeService {
         position: position,
         address: address,
         photoUrl: photoUrl,
+        faceDescriptor: faceDescriptor,
         joinDate: DateTime.now(),
         createdAt: DateTime.now(),
         createdBy: createdBy,
