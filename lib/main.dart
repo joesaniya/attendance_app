@@ -66,6 +66,7 @@ class _AppGateState extends State<_AppGate> {
           case AuthStatus.authenticated:
             return const AdminDashboardScreen();
 
+          case AuthStatus.authenticating:
           case AuthStatus.unauthenticated:
           case AuthStatus.error:
             return const LoginScreen();

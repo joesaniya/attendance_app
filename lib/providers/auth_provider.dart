@@ -6,7 +6,7 @@ import '../data/services/auth_service.dart';
 import '../data/models/user_model.dart';
 import 'dart:developer';
 
-enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
+enum AuthStatus { initial, loading, authenticating, authenticated, unauthenticated, error }
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -19,7 +19,7 @@ class AuthProvider extends ChangeNotifier {
   UserModel? get currentUser => _currentUser;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
-  bool get isLoading => _status == AuthStatus.loading;
+  bool get isLoading => _status == AuthStatus.loading || _status == AuthStatus.authenticating;
 
   bool get isSuperAdmin => _currentUser?.role == 'super_admin';
   bool get isManager => _currentUser?.role == 'manager';
@@ -78,7 +78,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> signIn(String email, String password) async {
-    _status = AuthStatus.loading;
+    _status = AuthStatus.authenticating;
     _errorMessage = null;
     notifyListeners();
 
@@ -92,7 +92,7 @@ class AuthProvider extends ChangeNotifier {
         return true;
       } else {
         _status = AuthStatus.error;
-        _errorMessage = 'No account record found for this email.';
+        _errorMessage = 'No Records Found.';
         notifyListeners();
         return false;
       }
@@ -120,20 +120,18 @@ class AuthProvider extends ChangeNotifier {
   }
 
   String _parseFirebaseError(String error) {
-    if (error.contains('no-firestore-record')) {
-      return 'No account record found. Contact your administrator.';
-    }
-    if (error.contains('user-not-found') ||
+    if (error.contains('no-firestore-record') ||
+        error.contains('user-not-found') ||
         error.contains('ERROR_USER_NOT_FOUND')) {
-      return 'No account exists with this email address.';
+      return 'No Records Found.';
     }
     if (error.contains('wrong-password') ||
         error.contains('INVALID_PASSWORD')) {
-      return 'Incorrect password. Please try again.';
+      return 'Incorrect Password.';
     }
     if (error.contains('invalid-credential') ||
         error.contains('INVALID_LOGIN_CREDENTIALS')) {
-      return 'Incorrect email or password. Please try again.';
+      return 'Incorrect Credentials.';
     }
     if (error.contains('invalid-email')) {
       return 'Invalid email address format.';

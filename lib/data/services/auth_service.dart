@@ -19,6 +19,8 @@ class AuthService {
     try {
       log('[AuthService] Signing in: $email');
 
+      // Sign in first, then validate that a corresponding Firestore user record exists.
+      // This avoids Firestore permission errors when the user is not yet authenticated.
       final credential = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password.trim(),
@@ -44,7 +46,7 @@ class AuthService {
           await _auth.signOut(); // sign them back out immediately
           throw FirebaseAuthException(
             code: 'no-firestore-record',
-            message: 'No account record found for this email.',
+            message: 'No Records Found.',
           );
         }
       }
