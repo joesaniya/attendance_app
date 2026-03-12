@@ -21,8 +21,15 @@ class LocalDbService {
 
     return await openDatabase(
       dbPath,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('DROP TABLE IF EXISTS employees');
+          await db.execute('DROP TABLE IF EXISTS attendance');
+          await _onCreate(db, newVersion);
+        }
+      },
     );
   }
 
@@ -33,14 +40,19 @@ class LocalDbService {
         id TEXT PRIMARY KEY,
         name TEXT,
         email TEXT,
+        phone TEXT,
         department TEXT,
-        role TEXT,
-        phoneNumber TEXT,
+        position TEXT,
+        address TEXT,
         photoUrl TEXT,
         faceDescriptor TEXT,
-        companyId TEXT,
+        joinDate TEXT,
         createdAt TEXT,
-        isActive INTEGER
+        createdBy TEXT,
+        createdByRole TEXT,
+        createdByName TEXT,
+        isActive INTEGER,
+        employeeCode TEXT
       )
     ''');
 
