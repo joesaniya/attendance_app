@@ -17,14 +17,14 @@ class AuthService {
 
   Future<UserModel?> signIn(String email, String password) async {
     try {
-      print('[AuthService] Signing in: $email');
+      log('[AuthService] Signing in: $email');
 
       final credential = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password.trim(),
       );
 
-      print('[AuthService] Firebase Auth success: ${credential.user?.uid}');
+      log('[AuthService] Firebase Auth success: ${credential.user?.uid}');
 
       if (credential.user != null) {
         final doc = await _firestore
@@ -33,12 +33,14 @@ class AuthService {
             .get();
 
         if (doc.exists) {
-          print('[AuthService] Firestore user found: ${doc.data()}');
+          log('[AuthService] Firestore user found: ${doc.data()}');
           return UserModel.fromMap(doc.data()!, doc.id);
         } else {
           // Auth succeeded but there is no matching record in the users
           // collection — reject the login with a clear error.
-          print('[AuthService] No Firestore record found for ${credential.user!.uid}');
+          log(
+            '[AuthService] No Firestore record found for ${credential.user!.uid}',
+          );
           await _auth.signOut(); // sign them back out immediately
           throw FirebaseAuthException(
             code: 'no-firestore-record',
@@ -48,10 +50,10 @@ class AuthService {
       }
       return null;
     } on FirebaseAuthException catch (e) {
-      print('[AuthService] FirebaseAuthException: ${e.code} - ${e.message}');
+      log('[AuthService] FirebaseAuthException: ${e.code} - ${e.message}');
       rethrow;
     } catch (e) {
-      print('[AuthService] General error: $e');
+      log('[AuthService] General error: $e');
       rethrow;
     }
   }
@@ -70,7 +72,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('[AuthService] getCurrentUserModel error: $e');
+      log('[AuthService] getCurrentUserModel error: $e');
       return null;
     }
   }
@@ -110,7 +112,7 @@ class AuthService {
 
       return user;
     } catch (e) {
-      print('[AuthService] createAdminUser error: $e');
+      log('[AuthService] createAdminUser error: $e');
       rethrow;
     }
   }
@@ -118,7 +120,7 @@ class AuthService {
   // Initialize default super admin
   Future<void> initializeDefaultAdmin() async {
     try {
-      print('[AuthService] Checking for existing Super Admin...');
+      log('[AuthService] Checking for existing Super Admin...');
 
       // Step 1: Try to sign in with default credentials
       try {
@@ -127,7 +129,7 @@ class AuthService {
           password: AppConstants.defaultAdminPassword,
         );
 
-        print('[AuthService] Super Admin Auth exists: ${credential.user?.uid}');
+        log('[AuthService] Super Admin Auth exists: ${credential.user?.uid}');
 
         // Step 2: Make sure Firestore record exists
         final doc = await _firestore
@@ -136,7 +138,7 @@ class AuthService {
             .get();
 
         if (!doc.exists) {
-          print('[AuthService] Creating missing Firestore record...');
+          log('[AuthService] Creating missing Firestore record...');
           await _firestore
               .collection(AppConstants.usersCollection)
               .doc(credential.user!.uid)
@@ -150,23 +152,23 @@ class AuthService {
                 'createdByRole': 'system',
                 'isActive': true,
               });
-          print('[AuthService] Firestore record created.');
+          log('[AuthService] Firestore record created.');
         } else {
-          print('[AuthService] Firestore record already exists.');
+          log('[AuthService] Firestore record already exists.');
         }
 
         // Sign out after initialization check
         await _auth.signOut();
-        print('[AuthService] Init complete.');
+        log('[AuthService] Init complete.');
         return;
       } on FirebaseAuthException catch (e) {
         if (e.code == 'user-not-found' ||
             e.code == 'invalid-credential' ||
             e.code == 'INVALID_LOGIN_CREDENTIALS') {
           // Admin doesn't exist yet — create it
-          print('[AuthService] Super Admin not found, creating...');
+          log('[AuthService] Super Admin not found, creating...');
         } else {
-          print('[AuthService] Init sign-in error: ${e.code}');
+          log('[AuthService] Init sign-in error: ${e.code}');
           // Don't rethrow — let app continue
           return;
         }
@@ -178,9 +180,7 @@ class AuthService {
         password: AppConstants.defaultAdminPassword,
       );
 
-      print(
-        '[AuthService] Super Admin created in Auth: ${credential.user?.uid}',
-      );
+      log('[AuthService] Super Admin created in Auth: ${credential.user?.uid}');
 
       await _firestore
           .collection(AppConstants.usersCollection)

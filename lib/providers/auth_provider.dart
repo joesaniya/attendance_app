@@ -1,8 +1,10 @@
 // lib/providers/auth_provider.dart
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../data/services/auth_service.dart';
 import '../data/models/user_model.dart';
+import 'dart:developer';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
@@ -28,18 +30,51 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _authService.initializeDefaultAdmin();
-      final user = await _authService.getCurrentUserModel();
-      if (user != null) {
-        _currentUser = user;
-        _status = AuthStatus.authenticated;
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+
+      if (firebaseUser != null) {
+        // ── Session is still active ──────────────────────────────────────────
+        // User was previously logged in — skip initializeDefaultAdmin
+        // (which would sign them out) and restore their session directly.
+        log('[AuthProvider] Active session found: ${firebaseUser.uid}');
+        final user = await _authService.getCurrentUserModel();
+        if (user != null) {
+          _currentUser = user;
+          _status = AuthStatus.authenticated;
+          log('[AuthProvider] Session restored for: ${user.email}');
+        } else {
+          // Auth session exists but no Firestore record — sign out cleanly
+          log(
+            '[AuthProvider] No Firestore record for active session, signing out.',
+          );
+          await _authService.signOut();
+          // await _initDefaultAdmin();
+          _status = AuthStatus.unauthenticated;
+        }
       } else {
+        // ── No active session ────────────────────────────────────────────────
+        // First launch or after sign-out — init default admin if needed.
+        log('[AuthProvider] No active session. Initializing default admin...');
+        // await _initDefaultAdmin();
         _status = AuthStatus.unauthenticated;
       }
     } catch (e) {
+      log('[AuthProvider] initialize error: $e');
       _status = AuthStatus.unauthenticated;
     }
+
     notifyListeners();
+  }
+
+  /// Initializes the default Super Admin account if it doesn't exist yet.
+  /// Only called when there is no active session.
+  Future<void> _initDefaultAdmin() async {
+    try {
+      await _authService.initializeDefaultAdmin();
+    } catch (e) {
+      log('[AuthProvider] _initDefaultAdmin error: $e');
+      // Never crash — let the app continue to the login screen
+    }
   }
 
   Future<bool> signIn(String email, String password) async {
@@ -52,6 +87,7 @@ class AuthProvider extends ChangeNotifier {
       if (user != null) {
         _currentUser = user;
         _status = AuthStatus.authenticated;
+        log('[AuthProvider] Signed in: ${user.email} role: ${user.role}');
         notifyListeners();
         return true;
       } else {
@@ -60,9 +96,16 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return false;
       }
+    } on FirebaseAuthException catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = _parseFirebaseError(e.code);
+      log('[AuthProvider] FirebaseAuthException: ${e.code}');
+      notifyListeners();
+      return false;
     } catch (e) {
       _status = AuthStatus.error;
       _errorMessage = _parseFirebaseError(e.toString());
+      log('[AuthProvider] signIn error: $e');
       notifyListeners();
       return false;
     }
@@ -72,29 +115,25 @@ class AuthProvider extends ChangeNotifier {
     await _authService.signOut();
     _currentUser = null;
     _status = AuthStatus.unauthenticated;
+    log('[AuthProvider] Signed out.');
     notifyListeners();
   }
 
   String _parseFirebaseError(String error) {
-    // Thrown by AuthService when Firebase Auth passes but no Firestore record
     if (error.contains('no-firestore-record')) {
-      return 'No Records Found. This account has not been registered in the system.';
+      return 'No account record found. Contact your administrator.';
     }
-    // Firebase Auth: email not registered at all
     if (error.contains('user-not-found') ||
         error.contains('ERROR_USER_NOT_FOUND')) {
-      return 'No Records Found. No account exists with this email address.';
+      return 'No account exists with this email address.';
     }
-    // Firebase Auth: password mismatch
     if (error.contains('wrong-password') ||
-        error.contains('invalid-password') ||
         error.contains('INVALID_PASSWORD')) {
-      return 'Incorrect Password. Please check your password and try again.';
+      return 'Incorrect password. Please try again.';
     }
-    // Newer Firebase SDK combines user-not-found + wrong-password into this
     if (error.contains('invalid-credential') ||
         error.contains('INVALID_LOGIN_CREDENTIALS')) {
-      return 'Incorrect Credentials. Email or password is wrong.';
+      return 'Incorrect email or password. Please try again.';
     }
     if (error.contains('invalid-email')) {
       return 'Invalid email address format.';

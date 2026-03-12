@@ -244,7 +244,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ).animate().fadeIn(delay: 700.ms, duration: 600.ms),
 
-                      const SizedBox(height: 24),
+                      /*     const SizedBox(height: 24),
 
                       // Demo credentials
                       GlassCard(
@@ -289,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                       ).animate().fadeIn(delay: 800.ms, duration: 600.ms),
-
+*/
                       const SizedBox(height: 32),
 
                       // Attendance Button
