@@ -145,7 +145,8 @@ class AuthProvider extends ChangeNotifier {
     if (error.contains('network-request-failed')) {
       return 'No internet connection. Please check your network.';
     }
-    return 'Login failed. Please check your credentials and try again.';
+    // Return the actual error message if not explicitly matched, so we can see what's failing.
+    return 'Login failed: $error';
   }
 
   void clearError() {

@@ -4,9 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/attendance_model.dart';
 import '../models/employee_model.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/local_db_service.dart';
+import '../../core/services/network_service.dart';
 
 class AttendanceService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final LocalDbService _localDbService = LocalDbService();
+  final NetworkService _networkService = NetworkService();
 
   String _getDateKey(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -36,6 +40,15 @@ class AttendanceService {
     final today = DateTime.now();
     final id = _getAttendanceId(employeeId, today);
 
+    final isOnline = await _networkService.isConnected();
+    if (!isOnline) {
+       final localRec = await _localDbService.getTodayAttendance(id);
+       if (localRec != null) {
+         return AttendanceModel.fromMap(localRec, id);
+       }
+       return null;
+    }
+
     final doc = await _firestore
         .collection(AppConstants.attendanceCollection)
         .doc(id)
@@ -47,7 +60,7 @@ class AttendanceService {
     return null;
   }
 
-  Future<AttendanceModel> markLogin(EmployeeModel employee) async {
+  Future<AttendanceModel> markLogin(EmployeeModel employee, {String? localPhotoPath}) async {
     final now = DateTime.now();
     final dateOnly = DateTime(now.year, now.month, now.day);
     final id = _getAttendanceId(employee.id, now);
@@ -63,28 +76,46 @@ class AttendanceService {
       status: AppConstants.statusPresent,
     );
 
+    final isOnline = await _networkService.isConnected();
+    if (!isOnline) {
+      final localMap = attendance.toMap();
+      localMap['id'] = id;
+      localMap['date'] = dateOnly.toIso8601String();
+      localMap['loginTime'] = now.toIso8601String();
+      localMap['isSynced'] = 0;
+      if (localPhotoPath != null) {
+        localMap['localPhotoPath'] = localPhotoPath;
+      }
+      await _localDbService.saveAttendance(localMap);
+      return attendance;
+    }
+
     await _firestore
         .collection(AppConstants.attendanceCollection)
         .doc(id)
         .set(attendance.toMap());
 
+    // Cache locally
+    final localMap = attendance.toMap();
+    localMap['id'] = id;
+    localMap['date'] = dateOnly.toIso8601String();
+    localMap['loginTime'] = now.toIso8601String();
+    localMap['isSynced'] = 1;
+    await _localDbService.saveAttendance(localMap);
+
     return attendance;
   }
 
-  Future<AttendanceModel> markLogout(String employeeId) async {
+  Future<AttendanceModel> markLogout(String employeeId, {String? localPhotoPath}) async {
     final now = DateTime.now();
     final id = _getAttendanceId(employeeId, now);
 
-    final doc = await _firestore
-        .collection(AppConstants.attendanceCollection)
-        .doc(id)
-        .get();
-
-    if (!doc.exists) {
+    final existingAppModel = await getTodayAttendance(employeeId);
+    if (existingAppModel == null) {
       throw Exception('No login record found for today');
     }
 
-    final existing = AttendanceModel.fromMap(doc.data()!, doc.id);
+    final existing = existingAppModel;
     final workHours = existing.loginTime != null
         ? now.difference(existing.loginTime!).inMinutes / 60.0
         : 0.0;
@@ -95,6 +126,23 @@ class AttendanceService {
       workHours: workHours,
     );
 
+    final isOnline = await _networkService.isConnected();
+    if (!isOnline) {
+      final localMap = updated.toMap();
+      localMap['id'] = id;
+      localMap['date'] = updated.date.toIso8601String();
+      if (updated.loginTime != null) {
+         localMap['loginTime'] = updated.loginTime!.toIso8601String();
+      }
+      localMap['logoutTime'] = now.toIso8601String();
+      localMap['isSynced'] = 0;
+      if (localPhotoPath != null) {
+        localMap['localPhotoPath'] = localPhotoPath;
+      }
+      await _localDbService.saveAttendance(localMap);
+      return updated;
+    }
+
     await _firestore
         .collection(AppConstants.attendanceCollection)
         .doc(id)
@@ -103,6 +151,16 @@ class AttendanceService {
           'status': AppConstants.statusPresent,
           'workHours': workHours,
         });
+
+    final localMap = updated.toMap();
+    localMap['id'] = id;
+    localMap['date'] = updated.date.toIso8601String();
+    if (updated.loginTime != null) {
+       localMap['loginTime'] = updated.loginTime!.toIso8601String();
+    }
+    localMap['logoutTime'] = now.toIso8601String();
+    localMap['isSynced'] = 1;
+    await _localDbService.saveAttendance(localMap);
 
     return updated;
   }

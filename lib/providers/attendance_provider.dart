@@ -100,7 +100,7 @@ class AttendanceProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> markLogin(EmployeeModel employee) async {
+  Future<bool> markLogin(EmployeeModel employee, {String? localPhotoPath}) async {
     _isLoading = true;
     _error = null;
     _attendanceMarked = false;
@@ -115,7 +115,7 @@ class AttendanceProvider extends ChangeNotifier {
         return false;
       }
 
-      final attendance = await _service.markLogin(employee);
+      final attendance = await _service.markLogin(employee, localPhotoPath: localPhotoPath);
       _currentEmployeeAttendance = attendance;
       _isLoading = false;
       _attendanceMarked = true;
@@ -129,14 +129,14 @@ class AttendanceProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> markLogout(String employeeId) async {
+  Future<bool> markLogout(String employeeId, {String? localPhotoPath}) async {
     _isLoading = true;
     _error = null;
     _attendanceMarked = false;
     notifyListeners();
 
     try {
-      final attendance = await _service.markLogout(employeeId);
+      final attendance = await _service.markLogout(employeeId, localPhotoPath: localPhotoPath);
       _currentEmployeeAttendance = attendance;
       _isLoading = false;
       _attendanceMarked = true;

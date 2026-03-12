@@ -9,10 +9,13 @@ import 'core/router/app_router.dart';
 import 'providers/auth_provider.dart';
 import 'providers/employee_provider.dart';
 import 'providers/attendance_provider.dart';
+import 'core/services/sync_service.dart';
+import 'widgets/offline_indicator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  SyncService().initialize();
   runApp(const AttendXApp());
 }
 
@@ -32,6 +35,9 @@ class AttendXApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         onGenerateRoute: AppRouter.generateRoute,
+        builder: (context, child) {
+          return OfflineIndicator(child: child!);
+        },
         home: const _AppGate(),
       ),
     );

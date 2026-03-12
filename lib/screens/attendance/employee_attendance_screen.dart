@@ -203,10 +203,19 @@ class _EmployeeAttendanceScreenState extends State<EmployeeAttendanceScreen>
     if (_matchedEmployee == null) return;
     setState(() => _isProcessing = true);
 
+    XFile? photo;
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      try {
+        photo = await _cameraController!.takePicture();
+      } catch (e) {
+        debugPrint('Failed to capture photo: $e');
+      }
+    }
+
     final attendanceProvider = context.read<AttendanceProvider>();
     final success = isLogin
-        ? await attendanceProvider.markLogin(_matchedEmployee!)
-        : await attendanceProvider.markLogout(_matchedEmployee!.id);
+        ? await attendanceProvider.markLogin(_matchedEmployee!, localPhotoPath: photo?.path)
+        : await attendanceProvider.markLogout(_matchedEmployee!.id, localPhotoPath: photo?.path);
 
     if (mounted) {
       setState(() {

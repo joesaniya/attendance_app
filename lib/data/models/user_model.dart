@@ -30,7 +30,9 @@ class UserModel {
       name: map['name'] ?? '',
       role: map['role'] ?? 'employee',
       photoUrl: map['photoUrl'],
-      createdAt: (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
+      createdAt: map['createdAt'] is String 
+          ? DateTime.parse(map['createdAt']) 
+          : (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
       createdBy: map['createdBy'],
       createdByRole: map['createdByRole'],
       isActive: map['isActive'] ?? true,

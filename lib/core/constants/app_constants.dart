@@ -21,6 +21,7 @@ class AppConstants {
 
   // Storage Paths
   static const String employeePhotosPath = 'employee_photos';
+  static const String attendancePhotosPath = 'attendance_photos';
 
   // Default credentials (for demo)
   static const String defaultAdminEmail = 'admin@attendx.com';

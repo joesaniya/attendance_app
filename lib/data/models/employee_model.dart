@@ -42,11 +42,19 @@ class EmployeeModel {
   factory EmployeeModel.fromMap(Map<String, dynamic> map, String docId) {
     DateTime safeDate(dynamic v) {
       if (v == null) return DateTime.now();
+      if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
       try {
         return (v as dynamic).toDate() as DateTime;
       } catch (_) {
         return DateTime.now();
       }
+    }
+
+    bool? safeBool(dynamic v) {
+      if (v == null) return null;
+      if (v is bool) return v;
+      if (v is int) return v == 1;
+      return null;
     }
 
     return EmployeeModel(
@@ -64,7 +72,7 @@ class EmployeeModel {
       createdBy: (map['createdBy'] as String?) ?? '',
       createdByRole: (map['createdByRole'] as String?) ?? '',
       createdByName: (map['createdByName'] as String?) ?? '',
-      isActive: map['isActive'] as bool?, // null if field is missing
+      isActive: safeBool(map['isActive']), // properly mapped for SQLite/Firebase
       employeeCode: map['employeeCode'] as String?,
     );
   }

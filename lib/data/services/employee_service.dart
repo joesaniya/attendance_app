@@ -6,43 +6,95 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
 import '../models/employee_model.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/local_db_service.dart';
+import '../../core/services/network_service.dart';
 
 class EmployeeService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage   _storage   = FirebaseStorage.instance;
   final Uuid _uuid = const Uuid();
+  final LocalDbService _localDbService = LocalDbService();
+  final NetworkService _networkService = NetworkService();
 
   /// Fetches ALL documents in the collection with NO where-clause filters.
   /// We filter client-side so pre-existing records that lack isActive / createdAt
   /// fields are never silently excluded by Firestore.
-  Stream<List<EmployeeModel>> getEmployeesStream() {
-    return _firestore
-        .collection(AppConstants.employeesCollection)
-        .snapshots()
-        .map((snap) {
-          final list = snap.docs
-              .map((doc) => EmployeeModel.fromMap(doc.data(), doc.id))
-              .where((emp) =>
-                  emp.isActive == null ||   // field absent → treat as active
-                  emp.isActive == true)     // field present and true
-              .toList();
-          // Newest first — safe client-side sort
-          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return list;
-        });
+  Stream<List<EmployeeModel>> getEmployeesStream() async* {
+    final isOnline = await _networkService.isConnected();
+    if (!isOnline) {
+      final localEmps = await _localDbService.getEmployees();
+      final list = localEmps.map((e) => EmployeeModel.fromMap(e, e['id'] as String)).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      yield list;
+    } else {
+      yield* _firestore
+          .collection(AppConstants.employeesCollection)
+          .snapshots()
+          .map((snap) {
+            final list = snap.docs
+                .map((doc) => EmployeeModel.fromMap(doc.data(), doc.id))
+                .where((emp) =>
+                    emp.isActive == null ||   // field absent → treat as active
+                    emp.isActive == true)     // field present and true
+                .toList();
+
+            // Cache to SQLite
+            final cacheList = list.map((e) {
+               final m = e.toMap();
+               m['id'] = e.id;
+               m['createdAt'] = e.createdAt.toIso8601String();
+               m['joinDate'] = e.joinDate.toIso8601String();
+               m['isActive'] = (e.isActive ?? true) ? 1 : 0;
+               return m;
+            }).toList();
+            _localDbService.saveEmployees(cacheList);
+
+            // Newest first — safe client-side sort
+            list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return list;
+          });
+    }
   }
 
   Future<List<EmployeeModel>> getAllEmployees() async {
+    final isOnline = await _networkService.isConnected();
+    if (!isOnline) {
+      final localEmps = await _localDbService.getEmployees();
+      return localEmps.map((e) => EmployeeModel.fromMap(e, e['id'] as String)).toList();
+    }
+
     final snap = await _firestore
         .collection(AppConstants.employeesCollection)
         .get();
-    return snap.docs
+        
+    final list = snap.docs
         .map((doc) => EmployeeModel.fromMap(doc.data(), doc.id))
         .where((emp) => emp.isActive == null || emp.isActive == true)
         .toList();
+
+    final cacheList = list.map((e) {
+       final m = e.toMap();
+       m['id'] = e.id;
+       m['createdAt'] = e.createdAt.toIso8601String();
+       m['joinDate'] = e.joinDate.toIso8601String();
+       m['isActive'] = (e.isActive ?? true) ? 1 : 0;
+       return m;
+    }).toList();
+    await _localDbService.saveEmployees(cacheList);
+
+    return list;
   }
 
   Future<EmployeeModel?> getEmployeeById(String id) async {
+    final isOnline = await _networkService.isConnected();
+    if (!isOnline) {
+       final localEmp = await _localDbService.getEmployee(id);
+       if (localEmp != null) {
+          return EmployeeModel.fromMap(localEmp, localEmp['id'] as String);
+       }
+       return null;
+    }
+
     final doc = await _firestore
         .collection(AppConstants.employeesCollection)
         .doc(id)

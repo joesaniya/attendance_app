@@ -5,12 +5,16 @@ import 'dart:developer';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../models/user_model.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/network_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NetworkService _networkService = NetworkService();
 
   User? get currentUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -18,6 +22,26 @@ class AuthService {
   Future<UserModel?> signIn(String email, String password) async {
     try {
       log('[AuthService] Signing in: $email');
+
+      final isOnline = await _networkService.isConnected();
+      if (!isOnline) {
+        log('[AuthService] Offline mode: checking local credentials');
+        final prefs = await SharedPreferences.getInstance();
+        final storedEmail = prefs.getString('offline_email');
+        final storedPassword = prefs.getString('offline_password');
+        final storedUserJson = prefs.getString('offline_user');
+
+        if (storedEmail == email.trim() && storedPassword == password.trim() && storedUserJson != null) {
+          log('[AuthService] Offline Auth success');
+          final decoded = jsonDecode(storedUserJson);
+          return UserModel.fromMap(decoded, decoded['id'] ?? '');
+        } else {
+          throw FirebaseAuthException(
+            code: 'network-request-failed',
+            message: 'No internet connection or invalid offline credentials.',
+          );
+        }
+      }
 
       // Sign in first, then validate that a corresponding Firestore user record exists.
       // This avoids Firestore permission errors when the user is not yet authenticated.
@@ -36,7 +60,18 @@ class AuthService {
 
         if (doc.exists) {
           log('[AuthService] Firestore user found: ${doc.data()}');
-          return UserModel.fromMap(doc.data()!, doc.id);
+          final userModel = UserModel.fromMap(doc.data()!, doc.id);
+
+          // Cache for offline login
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('offline_email', email.trim());
+          await prefs.setString('offline_password', password.trim());
+          
+          final userMap = userModel.toMap();
+          userMap['createdAt'] = userModel.createdAt.toIso8601String();
+          await prefs.setString('offline_user', jsonEncode(userMap));
+
+          return userModel;
         } else {
           // Auth succeeded but there is no matching record in the users
           // collection — reject the login with a clear error.
@@ -62,6 +97,17 @@ class AuthService {
 
   Future<UserModel?> getCurrentUserModel() async {
     try {
+      final isOnline = await _networkService.isConnected();
+      if (!isOnline) {
+        final prefs = await SharedPreferences.getInstance();
+        final storedUserJson = prefs.getString('offline_user');
+        if (storedUserJson != null) {
+          final decoded = jsonDecode(storedUserJson);
+          return UserModel.fromMap(decoded, decoded['id'] ?? '');
+        }
+        return null;
+      }
+
       if (_auth.currentUser == null) return null;
 
       final doc = await _firestore
@@ -70,7 +116,14 @@ class AuthService {
           .get();
 
       if (doc.exists) {
-        return UserModel.fromMap(doc.data()!, doc.id);
+        final userModel = UserModel.fromMap(doc.data()!, doc.id);
+        
+        final prefs = await SharedPreferences.getInstance();
+        final userMap = userModel.toMap();
+        userMap['createdAt'] = userModel.createdAt.toIso8601String();
+        await prefs.setString('offline_user', jsonEncode(userMap));
+        
+        return userModel;
       }
       return null;
     } catch (e) {
@@ -81,6 +134,10 @@ class AuthService {
 
   Future<void> signOut() async {
     await _auth.signOut();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('offline_email');
+    await prefs.remove('offline_password');
+    await prefs.remove('offline_user');
   }
 
   Future<UserModel> createAdminUser({
