@@ -32,17 +32,36 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
   File? _selectedPhoto;
   bool _isEditing = false;
 
-  final List<String> _departments = [
-    'Engineering',
-    'Design',
-    'Marketing',
-    'Sales',
-    'HR',
-    'Finance',
-    'Operations',
-    'Legal',
-    'Customer Support',
-    'Management',
+  // Farming / Gardening work areas
+  static const List<String> _workAreas = [
+    'Field Crops',
+    'Greenhouse',
+    'Nursery',
+    'Orchard',
+    'Vegetable Garden',
+    'Irrigation',
+    'Livestock',
+    'Composting',
+    'Harvest & Packing',
+    'Equipment & Maintenance',
+    'Landscaping',
+    'Soil Management',
+  ];
+
+  // Farming / Gardening roles
+  static const List<String> _roles = [
+    'Field Worker',
+    'Greenhouse Technician',
+    'Nursery Assistant',
+    'Irrigation Operator',
+    'Harvest Hand',
+    'Equipment Operator',
+    'Soil Analyst',
+    'Pest Control Worker',
+    'Livestock Caretaker',
+    'Farm Supervisor',
+    'Garden Coordinator',
+    'General Labourer',
   ];
 
   @override
@@ -170,7 +189,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Employee updated successfully!'),
+              content: Text('Worker record updated successfully!'),
               backgroundColor: AppTheme.successColor,
             ),
           );
@@ -203,7 +222,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                  '${employee.name} added successfully! Code: ${employee.employeeCode}'),
+                  '${employee.name} added to the team! Code: ${employee.employeeCode}'),
               backgroundColor: AppTheme.successColor,
               behavior: SnackBarBehavior.floating,
             ),
@@ -212,7 +231,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content:
-                  Text(employeeProvider.error ?? 'Failed to add employee'),
+                  Text(employeeProvider.error ?? 'Failed to add worker'),
               backgroundColor: AppTheme.errorColor,
             ),
           );
@@ -226,7 +245,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Employee' : 'Add Employee'),
+        title: Text(_isEditing ? 'Edit Worker' : 'Add Worker'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, size: 18),
           onPressed: () => Navigator.pop(context),
@@ -308,7 +327,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
               const SizedBox(height: 8),
               const Center(
                 child: Text(
-                  'This photo will be used for face detection',
+                  'Photo used for attendance & identification',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppTheme.textMuted,
@@ -319,11 +338,11 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
               const SizedBox(height: 28),
 
               // Personal Info Section
-              _sectionTitle('Personal Information'),
+              _sectionTitle('Personal Information', Icons.person_outline_rounded),
               const SizedBox(height: 16),
               AppTextField(
                 label: 'Full Name',
-                hint: 'John Doe',
+                hint: 'e.g. Ravi Kumar',
                 controller: _nameController,
                 prefixIcon: Icons.person_outlined,
                 validator: (v) =>
@@ -332,7 +351,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
               const SizedBox(height: 16),
               AppTextField(
                 label: 'Email Address',
-                hint: 'john@example.com',
+                hint: 'ravi@farm.com',
                 controller: _emailController,
                 prefixIcon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
@@ -345,7 +364,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
               const SizedBox(height: 16),
               AppTextField(
                 label: 'Phone Number',
-                hint: '+1 234 567 8900',
+                hint: '+91 98765 43210',
                 controller: _phoneController,
                 prefixIcon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
@@ -354,8 +373,8 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
               ),
               const SizedBox(height: 16),
               AppTextField(
-                label: 'Address',
-                hint: '123 Main St, City, Country',
+                label: 'Home Address / Village',
+                hint: 'e.g. 12 Green Acres, Kovai',
                 controller: _addressController,
                 prefixIcon: Icons.location_on_outlined,
                 maxLines: 2,
@@ -364,70 +383,43 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
               ),
 
               const SizedBox(height: 28),
-              _sectionTitle('Work Information'),
+              _sectionTitle('Farm Assignment', Icons.agriculture_rounded),
               const SizedBox(height: 16),
 
-              // Department Dropdown
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'DEPARTMENT',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textSecondary,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _departmentController.text.isNotEmpty
-                        ? _departmentController.text
-                        : null,
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.business_outlined,
-                          size: 18, color: AppTheme.textMuted),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide:
-                            const BorderSide(color: AppTheme.borderColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide:
-                            const BorderSide(color: AppTheme.borderColor),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      hintText: 'Select department',
-                      hintStyle: const TextStyle(
-                          color: AppTheme.textMuted, fontSize: 14),
-                    ),
-                    items: _departments
-                        .map((dept) => DropdownMenuItem(
-                              value: dept,
-                              child: Text(dept),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) _departmentController.text = value;
-                    },
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Department is required' : null,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              AppTextField(
-                label: 'Position/Job Title',
-                hint: 'Software Engineer',
-                controller: _positionController,
-                prefixIcon: Icons.work_outlined,
+              // Work Area Dropdown (replaces "Department")
+              _dropdownField(
+                label: 'WORK AREA',
+                hint: 'Select work area',
+                icon: Icons.park_outlined,
+                items: _workAreas,
+                currentValue: _departmentController.text.isNotEmpty &&
+                        _workAreas.contains(_departmentController.text)
+                    ? _departmentController.text
+                    : null,
+                onChanged: (value) {
+                  if (value != null) _departmentController.text = value;
+                },
                 validator: (v) =>
-                    v == null || v.isEmpty ? 'Position is required' : null,
+                    v == null || v.isEmpty ? 'Work area is required' : null,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Role Dropdown (replaces free-text "Position")
+              _dropdownField(
+                label: 'ROLE',
+                hint: 'Select worker role',
+                icon: Icons.badge_outlined,
+                items: _roles,
+                currentValue: _positionController.text.isNotEmpty &&
+                        _roles.contains(_positionController.text)
+                    ? _positionController.text
+                    : null,
+                onChanged: (value) {
+                  if (value != null) _positionController.text = value;
+                },
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Role is required' : null,
               ),
 
               const SizedBox(height: 32),
@@ -445,7 +437,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
                           color: AppTheme.primaryColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.info_outline_rounded,
+                        child: const Icon(Icons.agriculture_rounded,
                             color: AppTheme.primaryColor, size: 18),
                       ),
                       const SizedBox(width: 12),
@@ -454,14 +446,14 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Record created by',
+                              'Record added by',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: AppTheme.textMuted,
                               ),
                             ),
                             Text(
-                              '${auth.currentUser?.name ?? ''} (${auth.currentUser?.role == 'super_admin' ? 'Super Admin' : 'Manager'})',
+                              auth.currentUser?.name ?? 'Admin',
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -481,7 +473,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
               // Submit Button
               Consumer<EmployeeProvider>(
                 builder: (context, provider, _) => GradientButton(
-                  label: _isEditing ? 'Update Employee' : 'Add Employee',
+                  label: _isEditing ? 'Update Worker' : 'Add Worker',
                   icon: _isEditing
                       ? Icons.check_rounded
                       : Icons.person_add_rounded,
@@ -497,7 +489,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
     );
   }
 
-  Widget _sectionTitle(String title) {
+  Widget _sectionTitle(String title, IconData icon) {
     return Row(
       children: [
         Container(
@@ -509,7 +501,64 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
           ),
         ),
         const SizedBox(width: 10),
+        Icon(icon, size: 16, color: AppTheme.primaryColor),
+        const SizedBox(width: 6),
         Text(title, style: AppTextStyles.heading3),
+      ],
+    );
+  }
+
+  Widget _dropdownField({
+    required String label,
+    required String hint,
+    required IconData icon,
+    required List<String> items,
+    required String? currentValue,
+    required ValueChanged<String?> onChanged,
+    required FormFieldValidator<String> validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textSecondary,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: currentValue,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, size: 18, color: AppTheme.textMuted),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppTheme.borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppTheme.borderColor),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            hintText: hint,
+            hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
+          ),
+          isExpanded: true,
+          items: items
+              .map((item) => DropdownMenuItem(
+                    value: item,
+                    child: Text(item, overflow: TextOverflow.ellipsis),
+                  ))
+              .toList(),
+          onChanged: onChanged,
+          validator: validator,
+        ),
       ],
     );
   }

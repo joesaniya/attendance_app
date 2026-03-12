@@ -36,22 +36,14 @@ class AuthService {
           print('[AuthService] Firestore user found: ${doc.data()}');
           return UserModel.fromMap(doc.data()!, doc.id);
         } else {
-          // User exists in Auth but not Firestore — create the record
-          print('[AuthService] No Firestore record, creating one...');
-          final user = UserModel(
-            id: credential.user!.uid,
-            email: email.trim(),
-            name: 'Super Admin',
-            role: AppConstants.roleSuperAdmin,
-            createdAt: DateTime.now(),
-            createdBy: 'system',
-            createdByRole: 'system',
+          // Auth succeeded but there is no matching record in the users
+          // collection — reject the login with a clear error.
+          print('[AuthService] No Firestore record found for ${credential.user!.uid}');
+          await _auth.signOut(); // sign them back out immediately
+          throw FirebaseAuthException(
+            code: 'no-firestore-record',
+            message: 'No account record found for this email.',
           );
-          await _firestore
-              .collection(AppConstants.usersCollection)
-              .doc(credential.user!.uid)
-              .set(user.toMap());
-          return user;
         }
       }
       return null;

@@ -442,7 +442,7 @@ class _DashboardHome extends StatelessWidget {
             childAspectRatio: 1.5,
             children: [
               StatCard(
-                label: 'Total Employees',
+                label: 'Total Workers',
                 value: employees.allEmployees.length.toString(),
                 icon: Icons.people_rounded,
                 color: AppTheme.primaryColor,
@@ -568,7 +568,7 @@ class _EmployeeListPage extends StatelessWidget {
                     onChanged:
                         context.read<EmployeeProvider>().setSearchQuery,
                     decoration: const InputDecoration(
-                      hintText: 'Search employees...',
+                      hintText: 'Search workers...',
                       prefixIcon: Icon(Icons.search_rounded,
                           size: 18, color: AppTheme.textMuted),
                       border: InputBorder.none,
@@ -596,7 +596,7 @@ class _EmployeeListPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.add_rounded,
+                  child: const Icon(Icons.person_add_rounded,
                       color: Colors.white, size: 22),
                 ),
               ),
@@ -605,16 +605,96 @@ class _EmployeeListPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
 
-        // Employee List
+        // Worker List
         Expanded(
           child: Consumer<EmployeeProvider>(
             builder: (context, provider, _) {
+              // ── Loading state ──
+              if (provider.isLoading && provider.allEmployees.isEmpty) {
+                return const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text(
+                        'Loading workers...',
+                        style: TextStyle(
+                          color: AppTheme.textMuted,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // ── Error state ──
+              if (provider.error != null && provider.allEmployees.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.cloud_off_rounded,
+                          size: 56,
+                          color: AppTheme.errorColor.withOpacity(0.6),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Could not load workers',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          provider.error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () {
+                            provider.clearError();
+                            provider.listenToEmployees();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 10),
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Retry',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // ── Empty state ──
               if (provider.employees.isEmpty) {
                 return EmptyState(
-                  icon: Icons.people_outline_rounded,
-                  title: 'No Employees Found',
-                  subtitle: 'Add employees to get started.',
-                  actionLabel: 'Add Employee',
+                  icon: Icons.agriculture_rounded,
+                  title: 'No Workers Found',
+                  subtitle: 'Add farm workers to get started.',
+                  actionLabel: 'Add Worker',
                   onAction: () =>
                       Navigator.pushNamed(context, '/add_employee'),
                 );
@@ -650,54 +730,60 @@ class _EmployeeListPage extends StatelessWidget {
                                   Text(emp.name,
                                       style: AppTextStyles.bodyBold),
                                   const SizedBox(height: 2),
-                                  Text(emp.position,
-                                      style: AppTextStyles.caption),
+                                  Text(
+                                    emp.position.isNotEmpty
+                                        ? emp.position
+                                        : 'Farm Worker',
+                                    style: AppTextStyles.caption,
+                                  ),
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.primaryColor
-                                              .withOpacity(0.08),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                        ),
-                                        child: Text(
-                                          emp.department,
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppTheme.primaryColor,
+                                      // Work area badge
+                                      if (emp.department.isNotEmpty)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF2E7D32)
+                                                .withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.park_outlined,
+                                                size: 10,
+                                                color: Color(0xFF2E7D32),
+                                              ),
+                                              const SizedBox(width: 3),
+                                              Text(
+                                                emp.department,
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFF2E7D32),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ),
                                       const SizedBox(width: 6),
-                                      Text(
-                                        emp.employeeCode ?? '',
-                                        style: AppTextStyles.caption,
-                                      ),
+                                      if (emp.employeeCode != null)
+                                        Text(
+                                          emp.employeeCode!,
+                                          style: AppTextStyles.caption,
+                                        ),
                                     ],
                                   ),
                                 ],
                               ),
                             ),
-                            Column(
-                              children: [
-                                const Icon(
-                                  Icons.chevron_right_rounded,
-                                  color: AppTheme.textMuted,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'by ${emp.createdByName}',
-                                  style: const TextStyle(
-                                    fontSize: 9,
-                                    color: AppTheme.textMuted,
-                                  ),
-                                ),
-                              ],
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppTheme.textMuted,
                             ),
                           ],
                         ),

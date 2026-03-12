@@ -16,11 +16,15 @@ class EmployeeService {
     return _firestore
         .collection(AppConstants.employeesCollection)
         .where('isActive', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => EmployeeModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snap) {
+      final list = snap.docs
+          .map((doc) => EmployeeModel.fromMap(doc.data(), doc.id))
+          .toList();
+      // Sort in-memory so no composite index is required in Firestore
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
   }
 
   Future<List<EmployeeModel>> getAllEmployees() async {
@@ -28,9 +32,11 @@ class EmployeeService {
         .collection(AppConstants.employeesCollection)
         .where('isActive', isEqualTo: true)
         .get();
-    return snap.docs
+    final list = snap.docs
         .map((doc) => EmployeeModel.fromMap(doc.data(), doc.id))
         .toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
   }
 
   Future<EmployeeModel?> getEmployeeById(String id) async {

@@ -167,34 +167,40 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                     ],
                   ),
                 ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 60),
-                      Hero(
-                        tag: 'avatar_${emp.id}',
-                        child: AppAvatar(
-                            imageUrl: emp.photoUrl, name: emp.name, size: 80),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        emp.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Hero(
+                          tag: 'avatar_${emp.id}',
+                          child: AppAvatar(
+                              imageUrl: emp.photoUrl, name: emp.name, size: 70),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        emp.position,
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 13,
+                        const SizedBox(height: 8),
+                        Text(
+                          emp.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          emp.position.isNotEmpty ? emp.position : 'Farm Worker',
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

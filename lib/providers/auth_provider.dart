@@ -21,8 +21,7 @@ class AuthProvider extends ChangeNotifier {
 
   bool get isSuperAdmin => _currentUser?.role == 'super_admin';
   bool get isManager => _currentUser?.role == 'manager';
-  bool get isAdminOrManager =>
-      isSuperAdmin || isManager;
+  bool get isAdminOrManager => isSuperAdmin || isManager;
 
   Future<void> initialize() async {
     _status = AuthStatus.loading;
@@ -57,7 +56,7 @@ class AuthProvider extends ChangeNotifier {
         return true;
       } else {
         _status = AuthStatus.error;
-        _errorMessage = 'User not found. Please contact administrator.';
+        _errorMessage = 'No account record found for this email.';
         notifyListeners();
         return false;
       }
@@ -77,18 +76,39 @@ class AuthProvider extends ChangeNotifier {
   }
 
   String _parseFirebaseError(String error) {
-    if (error.contains('user-not-found')) {
-      return 'No account found with this email.';
-    } else if (error.contains('wrong-password')) {
-      return 'Incorrect password. Please try again.';
-    } else if (error.contains('invalid-email')) {
-      return 'Invalid email address.';
-    } else if (error.contains('user-disabled')) {
-      return 'This account has been disabled.';
-    } else if (error.contains('too-many-requests')) {
-      return 'Too many failed attempts. Try again later.';
+    // Thrown by AuthService when Firebase Auth passes but no Firestore record
+    if (error.contains('no-firestore-record')) {
+      return 'No Records Found. This account has not been registered in the system.';
     }
-    return 'Login failed. Please try again.';
+    // Firebase Auth: email not registered at all
+    if (error.contains('user-not-found') ||
+        error.contains('ERROR_USER_NOT_FOUND')) {
+      return 'No Records Found. No account exists with this email address.';
+    }
+    // Firebase Auth: password mismatch
+    if (error.contains('wrong-password') ||
+        error.contains('invalid-password') ||
+        error.contains('INVALID_PASSWORD')) {
+      return 'Incorrect Password. Please check your password and try again.';
+    }
+    // Newer Firebase SDK combines user-not-found + wrong-password into this
+    if (error.contains('invalid-credential') ||
+        error.contains('INVALID_LOGIN_CREDENTIALS')) {
+      return 'Incorrect Credentials. Email or password is wrong.';
+    }
+    if (error.contains('invalid-email')) {
+      return 'Invalid email address format.';
+    }
+    if (error.contains('user-disabled')) {
+      return 'This account has been disabled. Contact your administrator.';
+    }
+    if (error.contains('too-many-requests')) {
+      return 'Too many failed attempts. Please try again later.';
+    }
+    if (error.contains('network-request-failed')) {
+      return 'No internet connection. Please check your network.';
+    }
+    return 'Login failed. Please check your credentials and try again.';
   }
 
   void clearError() {
