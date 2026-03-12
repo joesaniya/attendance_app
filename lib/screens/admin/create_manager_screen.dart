@@ -107,13 +107,13 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Center(
+              Center(
                 child: Text(
                   'Manager Account',
                   style: AppTextStyles.heading2,
                 ),
               ),
-              const Center(
+               Center(
                 child: Text(
                   'Create a new manager account with full employee management access',
                   style: AppTextStyles.body,

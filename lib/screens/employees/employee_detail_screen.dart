@@ -53,7 +53,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Delete Employee'),
         content: Text(
-            'Are you sure you want to remove ${widget.employee.name}? This action cannot be undone.'),
+          'Are you sure you want to remove ${widget.employee.name}? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -69,9 +70,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     );
 
     if (confirm == true && mounted) {
-      final success = await context
-          .read<EmployeeProvider>()
-          .deleteEmployee(widget.employee.id);
+      final success = await context.read<EmployeeProvider>().deleteEmployee(
+        widget.employee.id,
+      );
       if (success && mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -87,10 +88,12 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final emp = widget.employee;
-    final presentDays =
-        _attendanceHistory.where((a) => a.status == 'present').length;
-    final absentDays =
-        _attendanceHistory.where((a) => a.status == 'absent').length;
+    final presentDays = _attendanceHistory
+        .where((a) => a.status == 'present')
+        .length;
+    final absentDays = _attendanceHistory
+        .where((a) => a.status == 'absent')
+        .length;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
@@ -115,8 +118,11 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.arrow_back_ios_rounded,
-                    size: 16, color: AppTheme.textPrimary),
+                child: const Icon(
+                  Icons.arrow_back_ios_rounded,
+                  size: 16,
+                  color: AppTheme.textPrimary,
+                ),
               ),
               onPressed: () => Navigator.pop(context),
             ),
@@ -129,8 +135,11 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.edit_rounded,
-                      size: 16, color: AppTheme.primaryColor),
+                  child: const Icon(
+                    Icons.edit_rounded,
+                    size: 16,
+                    color: AppTheme.primaryColor,
+                  ),
                 ),
                 onPressed: () => Navigator.push(
                   context,
@@ -148,8 +157,11 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.delete_rounded,
-                      size: 16, color: AppTheme.errorColor),
+                  child: const Icon(
+                    Icons.delete_rounded,
+                    size: 16,
+                    color: AppTheme.errorColor,
+                  ),
                 ),
                 onPressed: _deleteEmployee,
               ),
@@ -161,10 +173,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF0F0F1A),
-                      Color(0xFF16213E),
-                    ],
+                    colors: [Color(0xFF0F0F1A), Color(0xFF16213E)],
                   ),
                 ),
                 child: SafeArea(
@@ -176,7 +185,10 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                         Hero(
                           tag: 'avatar_${emp.id}',
                           child: AppAvatar(
-                              imageUrl: emp.photoUrl, name: emp.name, size: 70),
+                            imageUrl: emp.photoUrl,
+                            name: emp.name,
+                            size: 70,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -191,7 +203,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          emp.position.isNotEmpty ? emp.position : 'Farm Worker',
+                          emp.position.isNotEmpty
+                              ? emp.position
+                              : 'Farm Worker',
                           style: const TextStyle(
                             color: Colors.white60,
                             fontSize: 12,
@@ -221,20 +235,24 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('EMPLOYEE CODE',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.textMuted,
-                                  letterSpacing: 0.8,
-                                )),
+                            const Text(
+                              'EMPLOYEE CODE',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textMuted,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text(emp.employeeCode ?? '--',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.primaryColor,
-                                )),
+                            Text(
+                              emp.employeeCode ?? '--',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -246,20 +264,24 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('DEPARTMENT',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.textMuted,
-                                  letterSpacing: 0.8,
-                                )),
+                            const Text(
+                              'DEPARTMENT',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textMuted,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text(emp.department,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.accentColor,
-                                )),
+                            Text(
+                              emp.department,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.accentColor,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -299,8 +321,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                 const SizedBox(height: 8),
                 _infoCard(Icons.phone_outlined, 'Phone', emp.phone),
                 const SizedBox(height: 8),
-                _infoCard(
-                    Icons.location_on_outlined, 'Address', emp.address),
+                _infoCard(Icons.location_on_outlined, 'Address', emp.address),
                 const SizedBox(height: 20),
 
                 // Created by
@@ -314,16 +335,20 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                           color: AppTheme.primaryColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.history_rounded,
-                            color: AppTheme.primaryColor),
+                        child: const Icon(
+                          Icons.history_rounded,
+                          color: AppTheme.primaryColor,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Record Created By',
-                                style: AppTextStyles.caption),
+                            Text(
+                              'Record Created By',
+                              style: AppTextStyles.caption,
+                            ),
                             const SizedBox(height: 2),
                             Text(
                               '${emp.createdByName} · ${emp.createdByRole == 'super_admin' ? 'Super Admin' : 'Manager'}',
@@ -354,80 +379,82 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                     subtitle: 'No attendance records this month',
                   )
                 else
-                  ..._attendanceHistory.map((record) => Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: GlassCard(
-                          padding: const EdgeInsets.all(14),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: _statusColor(record.status)
-                                      .withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    DateFormat('d')
-                                        .format(record.date),
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: _statusColor(record.status),
-                                    ),
+                  ..._attendanceHistory.map(
+                    (record) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: GlassCard(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: _statusColor(
+                                  record.status,
+                                ).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  DateFormat('d').format(record.date),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: _statusColor(record.status),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      DateFormat('EEEE, MMM d')
-                                          .format(record.date),
-                                      style: AppTextStyles.bodyBold,
-                                    ),
-                                    if (record.loginTime != null ||
-                                        record.logoutTime != null) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        [
-                                          if (record.loginTime != null)
-                                            'In: ${DateFormat('hh:mm a').format(record.loginTime!)}',
-                                          if (record.logoutTime != null)
-                                            'Out: ${DateFormat('hh:mm a').format(record.logoutTime!)}',
-                                        ].join('  ·  '),
-                                        style: AppTextStyles.caption,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  StatusBadge(status: record.status),
-                                  if (record.workHours != null) ...[
-                                    const SizedBox(height: 4),
+                                  Text(
+                                    DateFormat(
+                                      'EEEE, MMM d',
+                                    ).format(record.date),
+                                    style: AppTextStyles.bodyBold,
+                                  ),
+                                  if (record.loginTime != null ||
+                                      record.logoutTime != null) ...[
+                                    const SizedBox(height: 2),
                                     Text(
-                                      record.formattedWorkHours,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.textSecondary,
-                                      ),
+                                      [
+                                        if (record.loginTime != null)
+                                          'In: ${DateFormat('hh:mm a').format(record.loginTime!)}',
+                                        if (record.logoutTime != null)
+                                          'Out: ${DateFormat('hh:mm a').format(record.logoutTime!)}',
+                                      ].join('  ·  '),
+                                      style: AppTextStyles.caption,
                                     ),
                                   ],
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                StatusBadge(status: record.status),
+                                if (record.workHours != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    record.formattedWorkHours,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ),
-                      )),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 40),
               ]),
             ),
@@ -459,13 +486,15 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textMuted,
-                      letterSpacing: 0.8,
-                    )),
+                Text(
+                  label.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textMuted,
+                    letterSpacing: 0.8,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(value, style: AppTextStyles.bodyBold),
               ],

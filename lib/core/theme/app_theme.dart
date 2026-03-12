@@ -1,59 +1,60 @@
 // lib/core/theme/app_theme.dart
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Brand Colors
-  static const Color primaryColor = Color(0xFF6C63FF);
-  static const Color primaryDark = Color(0xFF4B44CC);
-  static const Color primaryLight = Color(0xFF9D97FF);
-  static const Color accentColor = Color(0xFF00D4AA);
-  static const Color accentDark = Color(0xFF00A882);
+  static const Color primaryColor = Color(0xFF1E293B); // Slate 800
+  static const Color primaryDark = Color(0xFF0F172A);  // Slate 900
+  static const Color primaryLight = Color(0xFF334155); // Slate 700
+  static const Color accentColor = Color(0xFF10B981);  // Emerald 500
+  static const Color accentDark = Color(0xFF059669);   // Emerald 600
 
   // Semantic Colors
-  static const Color successColor = Color(0xFF00C896);
-  static const Color errorColor = Color(0xFFFF5C7A);
-  static const Color warningColor = Color(0xFFFFB020);
-  static const Color infoColor = Color(0xFF3B9AFF);
+  static const Color successColor = Color(0xFF10B981);
+  static const Color errorColor = Color(0xFFEF4444);
+  static const Color warningColor = Color(0xFFF59E0B);
+  static const Color infoColor = Color(0xFF3B82F6);
 
   // Neutral Colors
-  static const Color backgroundLight = Color(0xFFF7F8FC);
-  static const Color backgroundDark = Color(0xFF0F0F1A);
+  static const Color backgroundLight = Color(0xFFF8FAFC); // Slate 50
+  static const Color backgroundDark = Color(0xFF0F172A);  // Slate 900
   static const Color surfaceLight = Color(0xFFFFFFFF);
-  static const Color surfaceDark = Color(0xFF1A1A2E);
-  static const Color cardDark = Color(0xFF16213E);
+  static const Color surfaceDark = Color(0xFF1E293B);     // Slate 800
+  static const Color cardDark = Color(0xFF1E293B);
 
-  static const Color textPrimary = Color(0xFF1A1A2E);
-  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF475569);
   static const Color textLight = Color(0xFFFFFFFF);
-  static const Color textMuted = Color(0xFF9CA3AF);
+  static const Color textMuted = Color(0xFF94A3B8);
 
-  static const Color borderColor = Color(0xFFE5E7EB);
-  static const Color dividerColor = Color(0xFFF3F4F6);
+  static const Color borderColor = Color(0xFFE2E8F0);
+  static const Color dividerColor = Color(0xFFF1F5F9);
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [primaryColor, Color(0xFF9B59B6)],
+    colors: [primaryColor, primaryLight],
   );
 
   static const LinearGradient accentGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [accentColor, Color(0xFF0096C7)],
+    colors: [accentColor, Color(0xFF34D399)],
   );
 
   static const LinearGradient darkGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [backgroundDark, Color(0xFF16213E)],
+    colors: [backgroundDark, surfaceDark],
   );
 
   static const LinearGradient cardGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+    colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
   );
 
   // Light Theme
@@ -65,7 +66,59 @@ class AppTheme {
       brightness: Brightness.light,
     ),
     scaffoldBackgroundColor: backgroundLight,
-    fontFamily: 'SF Pro Display',
+    textTheme: GoogleFonts.interTextTheme(
+      ThemeData.light().textTheme.copyWith(
+        displayLarge: const TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w800,
+          color: textPrimary,
+          letterSpacing: -1,
+        ),
+        displayMedium: const TextStyle(
+          fontSize: 26,
+          fontWeight: FontWeight.w700,
+          color: textPrimary,
+          letterSpacing: -0.5,
+        ),
+        headlineLarge: const TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: textPrimary,
+          letterSpacing: -0.3,
+        ),
+        headlineMedium: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: textPrimary,
+        ),
+        titleLarge: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: textPrimary,
+        ),
+        titleMedium: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: textPrimary,
+        ),
+        bodyLarge: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+          color: textPrimary,
+        ),
+        bodyMedium: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w400,
+          color: textSecondary,
+        ),
+        labelLarge: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: textSecondary,
+          letterSpacing: 0.5,
+        ),
+      ),
+    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: surfaceLight,
       elevation: 0,
@@ -94,7 +147,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(14),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        textStyle: const TextStyle(
+        textStyle: GoogleFonts.inter(
           fontSize: 15,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.3,
@@ -103,14 +156,14 @@ class AppTheme {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFFF9FAFB),
+      fillColor: const Color(0xFFF1F5F9), // Slate 100
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: borderColor),
+        borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: borderColor),
+        borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -121,59 +174,8 @@ class AppTheme {
         borderSide: const BorderSide(color: errorColor),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      hintStyle: const TextStyle(color: textMuted, fontSize: 14),
-      labelStyle: const TextStyle(color: textSecondary, fontSize: 14),
-    ),
-    textTheme: const TextTheme(
-      displayLarge: TextStyle(
-        fontSize: 32,
-        fontWeight: FontWeight.w800,
-        color: textPrimary,
-        letterSpacing: -1,
-      ),
-      displayMedium: TextStyle(
-        fontSize: 26,
-        fontWeight: FontWeight.w700,
-        color: textPrimary,
-        letterSpacing: -0.5,
-      ),
-      headlineLarge: TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.w700,
-        color: textPrimary,
-        letterSpacing: -0.3,
-      ),
-      headlineMedium: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: textPrimary,
-      ),
-      titleLarge: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: textPrimary,
-      ),
-      titleMedium: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: textPrimary,
-      ),
-      bodyLarge: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w400,
-        color: textPrimary,
-      ),
-      bodyMedium: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w400,
-        color: textSecondary,
-      ),
-      labelLarge: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: textSecondary,
-        letterSpacing: 0.5,
-      ),
+      hintStyle: GoogleFonts.inter(color: textMuted, fontSize: 14),
+      labelStyle: GoogleFonts.inter(color: textSecondary, fontSize: 14),
     ),
   );
 
@@ -186,7 +188,7 @@ class AppTheme {
       brightness: Brightness.dark,
     ),
     scaffoldBackgroundColor: backgroundDark,
-    fontFamily: 'SF Pro Display',
+    textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
     appBarTheme: const AppBarTheme(
       backgroundColor: surfaceDark,
       elevation: 0,
@@ -203,53 +205,56 @@ class AppTheme {
 
 // Text Styles
 class AppTextStyles {
-  static const TextStyle heading1 = TextStyle(
+  // Now that global textTheme is overwritten with Inter, these can safely rely on default behavior
+  // but explicitly setting GoogleFonts on these constants ensures 100% adherence.
+  
+  static TextStyle heading1 = GoogleFonts.inter(
     fontSize: 28,
     fontWeight: FontWeight.w800,
     color: AppTheme.textPrimary,
     letterSpacing: -0.8,
   );
 
-  static const TextStyle heading2 = TextStyle(
+  static TextStyle heading2 = GoogleFonts.inter(
     fontSize: 22,
     fontWeight: FontWeight.w700,
     color: AppTheme.textPrimary,
     letterSpacing: -0.4,
   );
 
-  static const TextStyle heading3 = TextStyle(
+  static TextStyle heading3 = GoogleFonts.inter(
     fontSize: 18,
     fontWeight: FontWeight.w600,
     color: AppTheme.textPrimary,
   );
 
-  static const TextStyle body = TextStyle(
+  static TextStyle body = GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w400,
     color: AppTheme.textSecondary,
     height: 1.5,
   );
 
-  static const TextStyle bodyBold = TextStyle(
+  static TextStyle bodyBold = GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w600,
     color: AppTheme.textPrimary,
   );
 
-  static const TextStyle caption = TextStyle(
+  static TextStyle caption = GoogleFonts.inter(
     fontSize: 12,
     fontWeight: FontWeight.w400,
     color: AppTheme.textMuted,
     letterSpacing: 0.2,
   );
 
-  static const TextStyle buttonText = TextStyle(
+  static TextStyle buttonText = GoogleFonts.inter(
     fontSize: 15,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.3,
   );
 
-  static const TextStyle label = TextStyle(
+  static TextStyle label = GoogleFonts.inter(
     fontSize: 11,
     fontWeight: FontWeight.w600,
     color: AppTheme.textMuted,

@@ -214,8 +214,14 @@ class _EmployeeAttendanceScreenState extends State<EmployeeAttendanceScreen>
 
     final attendanceProvider = context.read<AttendanceProvider>();
     final success = isLogin
-        ? await attendanceProvider.markLogin(_matchedEmployee!, localPhotoPath: photo?.path)
-        : await attendanceProvider.markLogout(_matchedEmployee!.id, localPhotoPath: photo?.path);
+        ? await attendanceProvider.markLogin(
+            _matchedEmployee!,
+            localPhotoPath: photo?.path,
+          )
+        : await attendanceProvider.markLogout(
+            _matchedEmployee!.id,
+            localPhotoPath: photo?.path,
+          );
 
     if (mounted) {
       setState(() {
@@ -727,10 +733,7 @@ class _EmployeeAttendanceScreenState extends State<EmployeeAttendanceScreen>
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Current Time',
-                              style: AppTextStyles.caption,
-                            ),
+                            Text('Current Time', style: AppTextStyles.caption),
                             Text(
                               DateFormat('hh:mm a').format(DateTime.now()),
                               style: const TextStyle(
@@ -979,9 +982,9 @@ class _EmployeeSelectSheetState extends State<_EmployeeSelectSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Select Employee', style: AppTextStyles.heading3),
+                  Text('Select Employee', style: AppTextStyles.heading3),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Face not matched — choose manually',
                     style: AppTextStyles.body,
                   ),

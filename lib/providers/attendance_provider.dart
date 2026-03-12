@@ -186,6 +186,17 @@ class AttendanceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Refresh ──────────────────────────────────────────────────────────────────
+
+  /// Re-opens the real-time Firestore attendance stream for [_selectedDate].
+  /// Called by the pull-to-refresh gesture on the Attendance tab.
+  Future<void> refresh() async {
+    _attendanceSubscription?.cancel();
+    _attendanceSubscription = null;
+    listenToAttendanceByDate(_selectedDate);
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
   void clearError() {
     _error = null;
     notifyListeners();

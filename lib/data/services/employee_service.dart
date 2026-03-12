@@ -85,6 +85,47 @@ class EmployeeService {
     return list;
   }
 
+  /// Fetches a paginated batch of employees from Firestore.
+  /// [pageSize] — how many records to load per page.
+  /// [startAfterDoc] — the last Firestore [DocumentSnapshot] from the previous
+  ///                   page. Pass null to start from the beginning.
+  ///
+  /// Returns a map with:
+  ///   - 'employees': List<EmployeeModel>
+  ///   - 'lastDoc': DocumentSnapshot? — used as cursor for the next call
+  ///   - 'hasMore': bool — false when fewer than [pageSize] items were returned
+  Future<Map<String, dynamic>> getEmployeesPaginated({
+    required int pageSize,
+    DocumentSnapshot? startAfterDoc,
+  }) async {
+    // Build the base query — newest first
+    Query<Map<String, dynamic>> query = _firestore
+        .collection(AppConstants.employeesCollection)
+        .orderBy('createdAt', descending: true)
+        .limit(pageSize);
+
+    // If we have a cursor from a previous page, start after it
+    if (startAfterDoc != null) {
+      query = query.startAfterDocument(startAfterDoc);
+    }
+
+    final snap = await query.get();
+
+    // Map documents to models, keeping only active employees
+    final employees = snap.docs
+        .map((doc) => EmployeeModel.fromMap(doc.data(), doc.id))
+        .where((emp) => emp.isActive == null || emp.isActive == true)
+        .toList();
+
+    return {
+      'employees': employees,
+      // The cursor for the next page — null if no docs returned
+      'lastDoc': snap.docs.isNotEmpty ? snap.docs.last : null,
+      // hasMore is true if we got a full page; a partial page means we're done
+      'hasMore': snap.docs.length == pageSize,
+    };
+  }
+
   Future<EmployeeModel?> getEmployeeById(String id) async {
     final isOnline = await _networkService.isConnected();
     if (!isOnline) {

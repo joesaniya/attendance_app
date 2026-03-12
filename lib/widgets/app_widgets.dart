@@ -106,14 +106,14 @@ class GlassCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: color ?? Colors.white,
+        color: color ?? Colors.white.withOpacity(0.95),
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: AppTheme.borderColor, width: 1),
+        border: Border.all(color: AppTheme.borderColor.withOpacity(0.5), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -161,11 +161,11 @@ class AppAvatar extends StatelessWidget {
         : '?';
 
     final colors = [
-      [const Color(0xFF6C63FF), const Color(0xFF9B59B6)],
-      [const Color(0xFF00D4AA), const Color(0xFF0096C7)],
-      [const Color(0xFFFF5C7A), const Color(0xFFFF8C42)],
-      [const Color(0xFF3B9AFF), const Color(0xFF6C63FF)],
-      [const Color(0xFFFFB020), const Color(0xFFFF5C7A)],
+      [AppTheme.primaryColor, AppTheme.primaryLight],
+      [AppTheme.accentColor, AppTheme.accentDark],
+      [AppTheme.successColor, Color(0xFF34D399)],
+      [AppTheme.infoColor, Color(0xFF60A5FA)],
+      [AppTheme.warningColor, Color(0xFFFBBF24)],
     ];
 
     final colorIndex = name.isNotEmpty ? name.codeUnitAt(0) % colors.length : 0;

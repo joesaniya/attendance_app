@@ -90,7 +90,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF0F0F1A), Color(0xFF16213E)],
+          colors: [AppTheme.primaryDark, AppTheme.cardDark],
         ),
       ),
       child: Column(
@@ -321,11 +321,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceLight,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 20,
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 24,
             offset: const Offset(0, -4),
           ),
         ],
@@ -428,7 +428,7 @@ class _DashboardHome extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Welcome
-          const Text(
+           Text(
             "Today's Overview",
             style: AppTextStyles.heading2,
           ).animate().fadeIn(duration: 400.ms),
@@ -556,12 +556,48 @@ class _AttendanceListItem extends StatelessWidget {
 }
 
 // ─── Employee List Page ───────────────────────────────────────────────────────
-class _EmployeeListPage extends StatelessWidget {
+/// Stateful so we can manage the [ScrollController] for infinite scrolling.
+/// Pull-to-refresh is wired to [EmployeeProvider.refresh()].
+class _EmployeeListPage extends StatefulWidget {
+  @override
+  State<_EmployeeListPage> createState() => _EmployeeListPageState();
+}
+
+class _EmployeeListPageState extends State<_EmployeeListPage> {
+  /// Controls the list — used to detect when user reaches the bottom
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen for scroll events — trigger pagination near the bottom
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Called whenever the list scrolls.
+  /// If we are within 200px of the bottom and more pages exist, load next batch.
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    final currentPos = _scrollController.position.pixels;
+    // Trigger load-more when user is near the bottom
+    if (currentPos >= maxExtent - 200) {
+      context.read<EmployeeProvider>().loadMoreEmployees();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Search & Add
+        // Search & Add bar
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
           child: Row(
@@ -619,10 +655,13 @@ class _EmployeeListPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
 
-        // Employee List
+        // Employee List with pull-to-refresh + infinite scroll
         Expanded(
           child: Consumer<EmployeeProvider>(
             builder: (context, provider, _) {
+              if (provider.isLoading && provider.employees.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
               if (provider.employees.isEmpty) {
                 return EmptyState(
                   icon: Icons.people_outline_rounded,
@@ -633,95 +672,116 @@ class _EmployeeListPage extends StatelessWidget {
                 );
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                itemCount: provider.employees.length,
-                itemBuilder: (context, index) {
-                  final emp = provider.employees[index];
-                  return GestureDetector(
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      '/employee_detail',
-                      arguments: emp,
-                    ),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: GlassCard(
-                        padding: const EdgeInsets.all(14),
-                        child: Row(
-                          children: [
-                            AppAvatar(
-                              imageUrl: emp.photoUrl,
-                              name: emp.name,
-                              size: 50,
+              // RefreshIndicator enables pull-to-refresh
+              return RefreshIndicator(
+                color: AppTheme.accentColor,
+                onRefresh: () => provider.refresh(),
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  // +1 for the load-more spinner at the bottom
+                  itemCount: provider.employees.length + 1,
+                  itemBuilder: (context, index) {
+                    // Last item — show spinner or "no more" indicator
+                    if (index == provider.employees.length) {
+                      if (provider.isLoadingMore) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                        );
+                      }
+                      // All pages loaded
+                      if (!provider.hasMore) {
+                        return Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Center(
+                            child: Text(
+                              'All employees loaded',
+                              style: AppTextStyles.caption,
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    }
+
+                    final emp = provider.employees[index];
+                    return GestureDetector(
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/employee_detail',
+                        arguments: emp,
+                      ),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: GlassCard(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              AppAvatar(
+                                imageUrl: emp.photoUrl,
+                                name: emp.name,
+                                size: 50,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(emp.name, style: AppTextStyles.bodyBold),
+                                    const SizedBox(height: 2),
+                                    Text(emp.position, style: AppTextStyles.caption),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primaryColor.withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            emp.department,
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppTheme.primaryColor,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(emp.employeeCode ?? '', style: AppTextStyles.caption),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
                                 children: [
-                                  Text(emp.name, style: AppTextStyles.bodyBold),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    emp.position,
-                                    style: AppTextStyles.caption,
-                                  ),
+                                  const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted),
                                   const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.primaryColor
-                                              .withOpacity(0.08),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          emp.department,
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppTheme.primaryColor,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        emp.employeeCode ?? '',
-                                        style: AppTextStyles.caption,
-                                      ),
-                                    ],
+                                  Text(
+                                    'by ${emp.createdByName}',
+                                    style: const TextStyle(fontSize: 9, color: AppTheme.textMuted),
                                   ),
                                 ],
                               ),
-                            ),
-                            Column(
-                              children: [
-                                const Icon(
-                                  Icons.chevron_right_rounded,
-                                  color: AppTheme.textMuted,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'by ${emp.createdByName}',
-                                  style: const TextStyle(
-                                    fontSize: 9,
-                                    color: AppTheme.textMuted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               );
             },
           ),
@@ -835,113 +895,121 @@ class _AttendancePageState extends State<_AttendancePage> {
         ),
         const SizedBox(height: 12),
 
-        // List
+        // Attendance List with pull-to-refresh
         Expanded(
           child: Consumer<AttendanceProvider>(
             builder: (context, att, _) {
               if (att.filteredAttendance.isEmpty) {
-                return const EmptyState(
-                  icon: Icons.event_busy_rounded,
-                  title: 'No Records',
-                  subtitle: 'No attendance records for this date.',
+                return RefreshIndicator(
+                  color: AppTheme.accentColor,
+                  onRefresh: () => att.refresh(),
+                  child: ListView(
+                    children: const [
+                      EmptyState(
+                        icon: Icons.event_busy_rounded,
+                        title: 'No Records',
+                        subtitle: 'No attendance records for this date.',
+                      ),
+                    ],
+                  ),
                 );
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                itemCount: att.filteredAttendance.length,
-                itemBuilder: (context, index) {
-                  final record = att.filteredAttendance[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    child: GlassCard(
-                      padding: const EdgeInsets.all(14),
-                      child: Row(
-                        children: [
-                          AppAvatar(
-                            imageUrl: record.employeePhotoUrl,
-                            name: record.employeeName,
-                            size: 44,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  record.employeeName,
-                                  style: AppTextStyles.bodyBold,
-                                ),
-                                Text(
-                                  record.department,
-                                  style: AppTextStyles.caption,
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    if (record.loginTime != null) ...[
-                                      const Icon(
-                                        Icons.login_rounded,
-                                        size: 12,
-                                        color: AppTheme.successColor,
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        DateFormat(
-                                          'hh:mm a',
-                                        ).format(record.loginTime!),
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppTheme.successColor,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                    if (record.logoutTime != null) ...[
-                                      const SizedBox(width: 12),
-                                      const Icon(
-                                        Icons.logout_rounded,
-                                        size: 12,
-                                        color: AppTheme.errorColor,
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        DateFormat(
-                                          'hh:mm a',
-                                        ).format(record.logoutTime!),
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppTheme.errorColor,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                    if (record.workHours != null) ...[
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        record.formattedWorkHours,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppTheme.textMuted,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ],
+              // RefreshIndicator wraps the attendance list
+              // Pulling down re-listens to the Firestore stream → instant update
+              return RefreshIndicator(
+                color: AppTheme.accentColor,
+                onRefresh: () => att.refresh(),
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  itemCount: att.filteredAttendance.length,
+                  itemBuilder: (context, index) {
+                    final record = att.filteredAttendance[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: GlassCard(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            AppAvatar(
+                              imageUrl: record.employeePhotoUrl,
+                              name: record.employeeName,
+                              size: 44,
                             ),
-                          ),
-                          StatusBadge(
-                            status: record.isLoggedIn
-                                ? 'logged_in'
-                                : record.status,
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    record.employeeName,
+                                    style: AppTextStyles.bodyBold,
+                                  ),
+                                  Text(
+                                    record.department,
+                                    style: AppTextStyles.caption,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      if (record.loginTime != null) ...[
+                                        const Icon(
+                                          Icons.login_rounded,
+                                          size: 12,
+                                          color: AppTheme.successColor,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          DateFormat('hh:mm a').format(record.loginTime!),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppTheme.successColor,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                      if (record.logoutTime != null) ...[
+                                        const SizedBox(width: 12),
+                                        const Icon(
+                                          Icons.logout_rounded,
+                                          size: 12,
+                                          color: AppTheme.errorColor,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          DateFormat('hh:mm a').format(record.logoutTime!),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppTheme.errorColor,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                      if (record.workHours != null) ...[
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          record.formattedWorkHours,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppTheme.textMuted,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            StatusBadge(
+                              status: record.isLoggedIn ? 'logged_in' : record.status,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               );
             },
           ),
