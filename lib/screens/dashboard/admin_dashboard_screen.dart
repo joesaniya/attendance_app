@@ -428,7 +428,7 @@ class _DashboardHome extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Welcome
-           Text(
+          Text(
             "Today's Overview",
             style: AppTextStyles.heading2,
           ).animate().fadeIn(duration: 400.ms),
@@ -482,7 +482,7 @@ class _DashboardHome extends StatelessWidget {
           // Recent Attendance
           SectionHeader(
             title: "Today's Attendance",
-            actionLabel: 'View All',
+            // actionLabel: 'View All',
             onAction: () {},
           ).animate().fadeIn(delay: 500.ms),
           const SizedBox(height: 16),
@@ -734,9 +734,15 @@ class _EmployeeListPageState extends State<_EmployeeListPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(emp.name, style: AppTextStyles.bodyBold),
+                                    Text(
+                                      emp.name,
+                                      style: AppTextStyles.bodyBold,
+                                    ),
                                     const SizedBox(height: 2),
-                                    Text(emp.position, style: AppTextStyles.caption),
+                                    Text(
+                                      emp.position,
+                                      style: AppTextStyles.caption,
+                                    ),
                                     const SizedBox(height: 4),
                                     Row(
                                       children: [
@@ -746,8 +752,11 @@ class _EmployeeListPageState extends State<_EmployeeListPage> {
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: AppTheme.primaryColor.withOpacity(0.08),
-                                            borderRadius: BorderRadius.circular(20),
+                                            color: AppTheme.primaryColor
+                                                .withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
                                           child: Text(
                                             emp.department,
@@ -759,7 +768,10 @@ class _EmployeeListPageState extends State<_EmployeeListPage> {
                                           ),
                                         ),
                                         const SizedBox(width: 6),
-                                        Text(emp.employeeCode ?? '', style: AppTextStyles.caption),
+                                        Text(
+                                          emp.employeeCode ?? '',
+                                          style: AppTextStyles.caption,
+                                        ),
                                       ],
                                     ),
                                   ],
@@ -767,11 +779,17 @@ class _EmployeeListPageState extends State<_EmployeeListPage> {
                               ),
                               Column(
                                 children: [
-                                  const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted),
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: AppTheme.textMuted,
+                                  ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'by ${emp.createdByName}',
-                                    style: const TextStyle(fontSize: 9, color: AppTheme.textMuted),
+                                    style: const TextStyle(
+                                      fontSize: 9,
+                                      color: AppTheme.textMuted,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -960,7 +978,9 @@ class _AttendancePageState extends State<_AttendancePage> {
                                         ),
                                         const SizedBox(width: 3),
                                         Text(
-                                          DateFormat('hh:mm a').format(record.loginTime!),
+                                          DateFormat(
+                                            'hh:mm a',
+                                          ).format(record.loginTime!),
                                           style: const TextStyle(
                                             fontSize: 11,
                                             color: AppTheme.successColor,
@@ -977,7 +997,9 @@ class _AttendancePageState extends State<_AttendancePage> {
                                         ),
                                         const SizedBox(width: 3),
                                         Text(
-                                          DateFormat('hh:mm a').format(record.logoutTime!),
+                                          DateFormat(
+                                            'hh:mm a',
+                                          ).format(record.logoutTime!),
                                           style: const TextStyle(
                                             fontSize: 11,
                                             color: AppTheme.errorColor,
@@ -1002,7 +1024,9 @@ class _AttendancePageState extends State<_AttendancePage> {
                               ),
                             ),
                             StatusBadge(
-                              status: record.isLoggedIn ? 'logged_in' : record.status,
+                              status: record.isLoggedIn
+                                  ? 'logged_in'
+                                  : record.status,
                             ),
                           ],
                         ),
@@ -1059,71 +1083,311 @@ class _SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final user = auth.currentUser;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Profile Card
-          GlassCard(
+          // ── Hero Profile Header ──────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 48, 24, 32),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primaryDark.withOpacity(0.04),
+                  Colors.white.withOpacity(0.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                AppAvatar(
-                  imageUrl: auth.currentUser?.photoUrl,
-                  name: auth.currentUser?.name ?? '',
-                  size: 64,
-                ),
-                const SizedBox(width: 16),
+                // Minimalist Avatar
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppTheme.primaryColor.withOpacity(0.2),
+                      width: 2,
+                    ),
+                  ),
+                  child: Hero(
+                    tag: 'profile_avatar_settings',
+                    child: AppAvatar(
+                      imageUrl: user?.photoUrl,
+                      name: user?.name ?? 'Admin',
+                      size: 76,
+                    ),
+                  ),
+                ).animate().scale(delay: 100.ms, duration: 400.ms, curve: Curves.easeOutBack),
+                const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        auth.currentUser?.name ?? 'Admin',
-                        style: AppTextStyles.heading3,
-                      ),
+                        user?.name ?? 'Admin',
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: AppTheme.textPrimary,
+                          letterSpacing: -0.8,
+                          height: 1.1,
+                        ),
+                      ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.05),
                       const SizedBox(height: 4),
                       Text(
-                        auth.currentUser?.email ?? '',
-                        style: AppTextStyles.body,
-                      ),
-                      const SizedBox(height: 8),
-                      RoleBadge(role: auth.currentUser?.role ?? ''),
+                        user?.email ?? '',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.textMuted,
+                          letterSpacing: 0.2,
+                        ),
+                      ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.05),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryColor.withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          (user?.role ?? 'Admin').toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.0,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
 
-          // Options
-          if (auth.isSuperAdmin) ...[
-            _SettingsItem(
-              icon: Icons.person_add_rounded,
-              label: 'Create Manager Account',
-              onTap: () => Navigator.pushNamed(context, '/create_manager'),
+          // ── Settings Cards ───────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Account & Security',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textMuted.withOpacity(0.7),
+                    letterSpacing: 1.5,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ).animate().fadeIn(delay: 500.ms),
+                const SizedBox(height: 16),
+
+                if (auth.isSuperAdmin) ...[
+                  _PremiumSettingsTile(
+                    icon: Icons.person_add_rounded,
+                    title: 'Create Manager Account',
+                    subtitle: 'Provision a new administrative user',
+                    onTap: () => Navigator.pushNamed(context, '/create_manager'),
+                    iconColor: const Color(0xFF6366F1), // Elegant Indigo
+                    iconBgColor: const Color(0xFFEEF2FF),
+                  ).animate().slideY(begin: 0.1, delay: 550.ms).fadeIn(),
+                  const SizedBox(height: 12),
+                ],
+
+                _PremiumSettingsTile(
+                  icon: Icons.shield_rounded,
+                  title: 'Privacy & Security',
+                  subtitle: 'Passcodes and biometric setup',
+                  onTap: () {},
+                  iconColor: const Color(0xFF14B8A6), // Premium Teal
+                  iconBgColor: const Color(0xFFF0FDFA),
+                ).animate().slideY(begin: 0.1, delay: 600.ms).fadeIn(),
+                const SizedBox(height: 12),
+
+                _PremiumSettingsTile(
+                  icon: Icons.notifications_active_rounded,
+                  title: 'Notifications',
+                  subtitle: 'Manage alert preferences',
+                  onTap: () {},
+                  iconColor: const Color(0xFFF59E0B), // Warm Amber
+                  iconBgColor: const Color(0xFFFFFBEB),
+                ).animate().slideY(begin: 0.1, delay: 650.ms).fadeIn(),
+
+                const SizedBox(height: 32),
+
+                Text(
+                  'System',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textMuted.withOpacity(0.7),
+                    letterSpacing: 1.5,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ).animate().fadeIn(delay: 700.ms),
+                const SizedBox(height: 16),
+
+                _PremiumSettingsTile(
+                  icon: Icons.logout_rounded,
+                  title: 'Sign Out',
+                  subtitle: 'Securely completely log out',
+                  onTap: () => _showLogoutDialog(context),
+                  iconColor: AppTheme.errorColor,
+                  iconBgColor: AppTheme.errorColor.withOpacity(0.1),
+                  isDestructive: true,
+                ).animate().slideY(begin: 0.1, delay: 750.ms).fadeIn(),
+
+                const SizedBox(height: 48),
+
+                // ── App Brand Footer ─────────────────────────────────────────
+                Center(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.backgroundLight,
+                          border: Border.all(color: AppTheme.borderColor),
+                        ),
+                        child: const Icon(
+                          Icons.fingerprint_rounded,
+                          color: AppTheme.textMuted,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'ATTENDX',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 4.0,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Version 1.0.0 (Build 42)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textMuted.withOpacity(0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 800.ms),
+              ],
             ),
-            const SizedBox(height: 8),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent, // Prevents Material 3 tinting
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        titlePadding: const EdgeInsets.fromLTRB(28, 32, 28, 12),
+        contentPadding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        title: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.errorColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: AppTheme.errorColor,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Sign Out',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: -0.5),
+            ),
           ],
-          _SettingsItem(
-            icon: Icons.people_rounded,
-            label: 'Manage Employees',
-            onTap: () {},
+        ),
+        content: const Text(
+          'Are you sure you want to securely log out of your account? You will need to authenticate again to access your dashboard.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 14,
+            height: 1.5,
           ),
-          const SizedBox(height: 8),
-          _SettingsItem(
-            icon: Icons.bar_chart_rounded,
-            label: 'Attendance Reports',
-            onTap: () {},
-          ),
-          const SizedBox(height: 8),
-          _SettingsItem(
-            icon: Icons.logout_rounded,
-            label: 'Sign Out',
-            color: AppTheme.errorColor,
-            onTap: () => context.read<AuthProvider>().signOut(),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: AppTheme.backgroundLight,
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    context.read<AuthProvider>().signOut();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.errorColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text(
+                    'Sign Out',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1131,52 +1395,101 @@ class _SettingsPage extends StatelessWidget {
   }
 }
 
-class _SettingsItem extends StatelessWidget {
+class _PremiumSettingsTile extends StatelessWidget {
   final IconData icon;
-  final String label;
+  final String title;
+  final String subtitle;
   final VoidCallback onTap;
-  final Color color;
+  final Color iconColor;
+  final Color iconBgColor;
+  final bool isDestructive;
 
-  const _SettingsItem({
+  const _PremiumSettingsTile({
     required this.icon,
-    required this.label,
+    required this.title,
+    required this.subtitle,
     required this.onTap,
-    this.color = AppTheme.textPrimary,
+    required this.iconColor,
+    required this.iconBgColor,
+    this.isDestructive = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: GlassCard(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 20),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDestructive ? AppTheme.errorColor.withOpacity(0.15) : AppTheme.borderColor,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          splashColor: iconColor.withOpacity(0.05),
+          highlightColor: iconColor.withOpacity(0.02),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Minimalist Floating Icon
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: iconBgColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 24),
+                ),
+                const SizedBox(width: 16),
+                // Typography Focus
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: isDestructive ? AppTheme.errorColor : AppTheme.textPrimary,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Arrow
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: (isDestructive ? AppTheme.errorColor : AppTheme.textMuted).withOpacity(0.4),
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+              ],
             ),
-            const SizedBox(width: 14),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-            const Spacer(),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: color.withOpacity(0.5),
-              size: 20,
-            ),
-          ],
+          ),
         ),
       ),
     );
