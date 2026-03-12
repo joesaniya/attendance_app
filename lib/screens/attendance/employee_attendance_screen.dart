@@ -178,8 +178,13 @@ class _EmployeeAttendanceScreenState extends State<EmployeeAttendanceScreen>
         _scanState = ScanState.matched;
         _matchedEmployee = matched;
       });
+      try { 
+        if (_cameraController?.value.isStreamingImages == true) {
+          await _cameraController?.stopImageStream(); 
+        }
+      } catch (_) {}
       await Future.delayed(const Duration(milliseconds: 600));
-      await _loadAndShowResult(matched);
+      await _loadAndShowResult(matched, isAuto: true);
     } else {
       setState(() => _scanState = ScanState.noMatch);
       await Future.delayed(const Duration(seconds: 2));
@@ -188,14 +193,25 @@ class _EmployeeAttendanceScreenState extends State<EmployeeAttendanceScreen>
   }
 
   // ── Load existing attendance and show result ──────────────────────────────────
-  Future<void> _loadAndShowResult(EmployeeModel employee) async {
+  Future<void> _loadAndShowResult(EmployeeModel employee, {bool isAuto = false}) async {
     final attendanceProvider = context.read<AttendanceProvider>();
     await attendanceProvider.loadEmployeeAttendance(employee.id);
     if (!mounted) return;
+
+    final attendance = attendanceProvider.currentEmployeeAttendance;
+    final isLoggedIn = attendance?.isLoggedIn ?? false;
+    final isCompleted = attendance?.isCompleted ?? false;
+
     setState(() {
-      _existingAttendance = attendanceProvider.currentEmployeeAttendance;
+      _existingAttendance = attendance;
       _scanState = ScanState.result;
     });
+
+    if (isAuto && !isLoggedIn && !isCompleted) {
+      await _markAttendance(true);
+    } else if (isAuto && isLoggedIn && !isCompleted) {
+       // Optional: Could show a message here if needed.
+    }
   }
 
   // ── Mark attendance ───────────────────────────────────────────────────────────
@@ -224,6 +240,33 @@ class _EmployeeAttendanceScreenState extends State<EmployeeAttendanceScreen>
           );
 
     if (mounted) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isLogin ? "Check-In successful." : "Check-Out successful."),
+            backgroundColor: AppTheme.successColor,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else if (attendanceProvider.error == 'Already logged in today') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("You have already checked in today."),
+            backgroundColor: AppTheme.errorColor,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else if (attendanceProvider.error != null) {
+        // Show any other backend errors
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(attendanceProvider.error!),
+            backgroundColor: AppTheme.errorColor,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
       setState(() {
         _isProcessing = false;
         _attendanceMarked = success;

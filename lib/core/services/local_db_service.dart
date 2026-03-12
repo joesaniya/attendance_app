@@ -21,10 +21,10 @@ class LocalDbService {
 
     return await openDatabase(
       dbPath,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
+        if (oldVersion < 3) {
           await db.execute('DROP TABLE IF EXISTS employees');
           await db.execute('DROP TABLE IF EXISTS attendance');
           await _onCreate(db, newVersion);
@@ -69,6 +69,7 @@ class LocalDbService {
         logoutTime TEXT,
         status TEXT,
         workHours REAL,
+        notes TEXT,
         isSynced INTEGER DEFAULT 0,
         localPhotoPath TEXT
       )
