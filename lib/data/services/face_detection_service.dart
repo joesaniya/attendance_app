@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
@@ -10,10 +11,14 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../models/employee_model.dart';
 
 class FaceDetectionService {
-  late FaceDetector _faceDetector;
+  FaceDetector? _faceDetector;
   bool _isInitialized = false;
 
+  // ── Prevent concurrent processing that causes GC buffer drops ────────────────
+  bool _isProcessing = false;
+
   void initialize() {
+    if (_isInitialized) return;
     final options = FaceDetectorOptions(
       enableLandmarks: true,
       enableClassification: true,
@@ -27,7 +32,12 @@ class FaceDetectionService {
 
   Future<List<Face>> detectFaces(InputImage inputImage) async {
     if (!_isInitialized) initialize();
-    return await _faceDetector.processImage(inputImage);
+    if (_faceDetector == null) return [];
+    try {
+      return await _faceDetector!.processImage(inputImage);
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<List<Face>> detectFacesFromFile(File imageFile) async {
@@ -35,23 +45,30 @@ class FaceDetectionService {
     return detectFaces(inputImage);
   }
 
+  /// Safe camera image processing — copies bytes immediately before GC can drop them.
   Future<List<Face>> detectFacesFromCameraImage(
     CameraImage image,
     CameraDescription camera,
   ) async {
-    final inputImage = _convertCameraImage(image, camera);
-    if (inputImage == null) return [];
-    return detectFaces(inputImage);
+    // Guard: skip if already processing to avoid buffer backlog
+    if (_isProcessing) return [];
+    _isProcessing = true;
+    try {
+      final inputImage = _convertCameraImage(image, camera);
+      if (inputImage == null) return [];
+      return await detectFaces(inputImage);
+    } catch (e) {
+      return [];
+    } finally {
+      _isProcessing = false;
+    }
   }
 
   // ── Face Descriptor ──────────────────────────────────────────────────────────
-  // Builds a geometric descriptor from face landmarks.
-  // Stored as a JSON string in Firestore under employee.faceDescriptor.
   String? buildFaceDescriptor(Face face) {
     try {
       final landmarks = <String, List<double>>{};
 
-      // Collect all available landmarks
       final landmarkTypes = [
         FaceLandmarkType.leftEye,
         FaceLandmarkType.rightEye,
@@ -75,10 +92,11 @@ class FaceDetectionService {
         }
       }
 
-      if (landmarks.length < 3) return null; // not enough landmarks
+      if (landmarks.length < 3) return null;
 
-      // Normalise relative to face bounding box so descriptor is scale-invariant
       final bbox = face.boundingBox;
+      if (bbox.width == 0 || bbox.height == 0) return null;
+
       final normLandmarks = <String, List<double>>{};
       landmarks.forEach((key, pos) {
         normLandmarks[key] = [
@@ -87,7 +105,6 @@ class FaceDetectionService {
         ];
       });
 
-      // Build geometric feature vector: pairwise distances between landmarks
       final positions = normLandmarks.values.toList();
       final features = <double>[];
       for (int i = 0; i < positions.length; i++) {
@@ -107,17 +124,15 @@ class FaceDetectionService {
 
       return jsonEncode(descriptor);
     } catch (e) {
-      print('[FaceDetection] buildFaceDescriptor error: $e');
       return null;
     }
   }
 
   // ── Face Matching ────────────────────────────────────────────────────────────
-  // Returns the best-matching employee if similarity exceeds threshold.
   EmployeeModel? matchFaceToEmployee({
     required Face detectedFace,
     required List<EmployeeModel> employees,
-    double threshold = 0.78, // 0–1 scale; higher = stricter
+    double threshold = 0.78,
   }) {
     final descriptor = buildFaceDescriptor(detectedFace);
     if (descriptor == null) return null;
@@ -126,15 +141,13 @@ class FaceDetectionService {
     double bestScore = 0;
 
     for (final employee in employees) {
-      if (employee.faceDescriptor == null || employee.faceDescriptor!.isEmpty)
+      if (employee.faceDescriptor == null || employee.faceDescriptor!.isEmpty) {
         continue;
+      }
 
       final score = _compareFaceDescriptors(
         descriptor,
         employee.faceDescriptor!,
-      );
-      print(
-        '[FaceDetection] ${employee.name} score: ${score.toStringAsFixed(3)}',
       );
 
       if (score > bestScore) {
@@ -144,11 +157,8 @@ class FaceDetectionService {
     }
 
     if (bestScore >= threshold) {
-      print('[FaceDetection] Matched: ${bestMatch?.name} (score: $bestScore)');
       return bestMatch;
     }
-
-    print('[FaceDetection] No match found. Best score: $bestScore');
     return null;
   }
 
@@ -162,10 +172,8 @@ class FaceDetectionService {
 
       if (f1.isEmpty || f2.isEmpty) return 0;
 
-      // Use the shorter vector length for safety
       final len = min(f1.length, f2.length);
 
-      // Cosine similarity between feature vectors
       double dot = 0, mag1 = 0, mag2 = 0;
       for (int i = 0; i < len; i++) {
         dot += f1[i] * f2[i];
@@ -176,7 +184,6 @@ class FaceDetectionService {
       if (mag1 == 0 || mag2 == 0) return 0;
       return dot / (sqrt(mag1) * sqrt(mag2));
     } catch (e) {
-      print('[FaceDetection] compare error: $e');
       return 0;
     }
   }
@@ -185,7 +192,6 @@ class FaceDetectionService {
   bool isFaceDetected(List<Face> faces) => faces.isNotEmpty;
 
   bool isFaceGoodQuality(Face face) {
-    // Check face is looking mostly forward
     final yaw = (face.headEulerAngleY ?? 0).abs();
     final pitch = (face.headEulerAngleX ?? 0).abs();
     return yaw < 20 && pitch < 15;
@@ -202,13 +208,25 @@ class FaceDetectionService {
     return confidence.clamp(0.0, 1.0);
   }
 
+  /// KEY FIX: Copy all plane bytes into a single owned buffer immediately,
+  /// before returning — this prevents the GC from dropping the native buffer
+  /// while ML Kit is still reading it (the root cause of IllegalArgumentException).
   InputImage? _convertCameraImage(CameraImage image, CameraDescription camera) {
     try {
-      final WriteBuffer allBytes = WriteBuffer();
-      for (final Plane plane in image.planes) {
-        allBytes.putUint8List(plane.bytes);
+      // Calculate total byte length upfront
+      int totalBytes = 0;
+      for (final plane in image.planes) {
+        totalBytes += plane.bytes.length;
       }
-      final bytes = allBytes.done().buffer.asUint8List();
+
+      // Allocate a single owned buffer and copy all planes into it
+      final Uint8List allBytes = Uint8List(totalBytes);
+      int offset = 0;
+      for (final plane in image.planes) {
+        allBytes.setRange(offset, offset + plane.bytes.length, plane.bytes);
+        offset += plane.bytes.length;
+      }
+
       final imageSize = Size(image.width.toDouble(), image.height.toDouble());
       final imageRotation =
           InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
@@ -216,8 +234,9 @@ class FaceDetectionService {
       final inputImageFormat =
           InputImageFormatValue.fromRawValue(image.format.raw) ??
           InputImageFormat.nv21;
+
       return InputImage.fromBytes(
-        bytes: bytes,
+        bytes: allBytes,
         metadata: InputImageMetadata(
           size: imageSize,
           rotation: imageRotation,
@@ -232,8 +251,10 @@ class FaceDetectionService {
 
   void dispose() {
     if (_isInitialized) {
-      _faceDetector.close();
+      _faceDetector?.close();
+      _faceDetector = null;
       _isInitialized = false;
+      _isProcessing = false;
     }
   }
 }
