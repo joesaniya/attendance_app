@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.employee_attendance_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -22,9 +22,9 @@ android {
 
     defaultConfig {
         applicationId = "com.example.employee_attendance_app"
-        // ML Kit requires minSdk 21 minimum
+       
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
@@ -48,6 +48,9 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
-    implementation("com.google.mlkit:face-detection:16.1.5")
     implementation("androidx.multidex:multidex:2.0.1")
+
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("com.google.android.material:material:1.12.0")
 }

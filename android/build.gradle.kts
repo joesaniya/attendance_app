@@ -1,5 +1,6 @@
 plugins {
-    // Remove version here - Flutter already includes google-services on classpath
+    id("com.android.application") apply false
+    id("org.jetbrains.kotlin.android") apply false
     id("com.google.gms.google-services") apply false
 }
 
