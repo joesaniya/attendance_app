@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "209941802246",
+    "project_id": "attend-app-e45a6",
+    "storage_bucket": "attend-app-e45a6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:209941802246:android:c81fa08a80bf3408d78287",
+        "android_client_info": {
+          "package_name": "com.example.employee_attendance_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjzfZFQZ5hJjsG0ozIyFEdxcJU2RKFugk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
