@@ -27,7 +27,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<EmployeeProvider>().listenToEmployees();
-      context.read<AttendanceProvider>().listenToAttendanceByDate(DateTime.now());
+      context.read<AttendanceProvider>().listenToAttendanceByDate(
+        DateTime.now(),
+      );
     });
   }
 
@@ -146,10 +148,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppTheme.primaryColor.withOpacity(0.2)
@@ -157,7 +160,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: isSelected
                       ? Border.all(
-                          color: AppTheme.primaryColor.withOpacity(0.3))
+                          color: AppTheme.primaryColor.withOpacity(0.3),
+                        )
                       : null,
                 ),
                 child: Row(
@@ -195,8 +199,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(12),
-              border:
-                  Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.08),
+                width: 1,
+              ),
             ),
             child: Row(
               children: [
@@ -286,8 +292,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           const Spacer(),
           // Date
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: AppTheme.primaryColor.withOpacity(0.08),
               borderRadius: BorderRadius.circular(20),
@@ -343,7 +348,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppTheme.primaryColor.withOpacity(0.1)
@@ -442,7 +449,7 @@ class _DashboardHome extends StatelessWidget {
             childAspectRatio: 1.5,
             children: [
               StatCard(
-                label: 'Total Workers',
+                label: 'Total Employees',
                 value: employees.allEmployees.length.toString(),
                 icon: Icons.people_rounded,
                 color: AppTheme.primaryColor,
@@ -488,10 +495,13 @@ class _DashboardHome extends StatelessWidget {
                   'Attendance records will appear here as employees check in.',
             )
           else
-            ...attendance.todayAttendance.take(8).map((record) =>
-                _AttendanceListItem(record: record)
-                    .animate()
-                    .fadeIn(duration: 400.ms)),
+            ...attendance.todayAttendance
+                .take(8)
+                .map(
+                  (record) => _AttendanceListItem(
+                    record: record,
+                  ).animate().fadeIn(duration: 400.ms),
+                ),
         ],
       ),
     );
@@ -519,18 +529,18 @@ class _AttendanceListItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(record.employeeName,
-                    style: AppTextStyles.bodyBold),
+                Text(record.employeeName, style: AppTextStyles.bodyBold),
                 const SizedBox(height: 2),
-                Text(record.department,
-                    style: AppTextStyles.caption),
+                Text(record.department, style: AppTextStyles.caption),
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              StatusBadge(status: record.isLoggedIn ? 'logged_in' : record.status),
+              StatusBadge(
+                status: record.isLoggedIn ? 'logged_in' : record.status,
+              ),
               const SizedBox(height: 4),
               if (record.loginTime != null)
                 Text(
@@ -565,12 +575,14 @@ class _EmployeeListPage extends StatelessWidget {
                     border: Border.all(color: AppTheme.borderColor),
                   ),
                   child: TextField(
-                    onChanged:
-                        context.read<EmployeeProvider>().setSearchQuery,
+                    onChanged: context.read<EmployeeProvider>().setSearchQuery,
                     decoration: const InputDecoration(
-                      hintText: 'Search workers...',
-                      prefixIcon: Icon(Icons.search_rounded,
-                          size: 18, color: AppTheme.textMuted),
+                      hintText: 'Search employees...',
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        size: 18,
+                        color: AppTheme.textMuted,
+                      ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(vertical: 12),
                       hintStyle: TextStyle(fontSize: 13),
@@ -580,8 +592,7 @@ class _EmployeeListPage extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               GestureDetector(
-                onTap: () =>
-                    Navigator.pushNamed(context, '/add_employee'),
+                onTap: () => Navigator.pushNamed(context, '/add_employee'),
                 child: Container(
                   width: 44,
                   height: 44,
@@ -596,8 +607,11 @@ class _EmployeeListPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.person_add_rounded,
-                      color: Colors.white, size: 22),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
               ),
             ],
@@ -605,98 +619,17 @@ class _EmployeeListPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
 
-        // Worker List
+        // Employee List
         Expanded(
           child: Consumer<EmployeeProvider>(
             builder: (context, provider, _) {
-              // ── Loading state ──
-              if (provider.isLoading && provider.allEmployees.isEmpty) {
-                return const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text(
-                        'Loading workers...',
-                        style: TextStyle(
-                          color: AppTheme.textMuted,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              // ── Error state ──
-              if (provider.error != null && provider.allEmployees.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.cloud_off_rounded,
-                          size: 56,
-                          color: AppTheme.errorColor.withOpacity(0.6),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Could not load workers',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          provider.error!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textMuted,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: () {
-                            provider.clearError();
-                            provider.listenToEmployees();
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
-                            decoration: BoxDecoration(
-                              gradient: AppTheme.primaryGradient,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Retry',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              // ── Empty state ──
               if (provider.employees.isEmpty) {
                 return EmptyState(
-                  icon: Icons.agriculture_rounded,
-                  title: 'No Workers Found',
-                  subtitle: 'Add farm workers to get started.',
-                  actionLabel: 'Add Worker',
-                  onAction: () =>
-                      Navigator.pushNamed(context, '/add_employee'),
+                  icon: Icons.people_outline_rounded,
+                  title: 'No Employees Found',
+                  subtitle: 'Add employees to get started.',
+                  actionLabel: 'Add Employee',
+                  onAction: () => Navigator.pushNamed(context, '/add_employee'),
                 );
               }
 
@@ -718,72 +651,70 @@ class _EmployeeListPage extends StatelessWidget {
                         child: Row(
                           children: [
                             AppAvatar(
-                                imageUrl: emp.photoUrl,
-                                name: emp.name,
-                                size: 50),
+                              imageUrl: emp.photoUrl,
+                              name: emp.name,
+                              size: 50,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(emp.name,
-                                      style: AppTextStyles.bodyBold),
+                                  Text(emp.name, style: AppTextStyles.bodyBold),
                                   const SizedBox(height: 2),
                                   Text(
-                                    emp.position.isNotEmpty
-                                        ? emp.position
-                                        : 'Farm Worker',
+                                    emp.position,
                                     style: AppTextStyles.caption,
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      // Work area badge
-                                      if (emp.department.isNotEmpty)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF2E7D32)
-                                                .withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(
-                                                Icons.park_outlined,
-                                                size: 10,
-                                                color: Color(0xFF2E7D32),
-                                              ),
-                                              const SizedBox(width: 3),
-                                              Text(
-                                                emp.department,
-                                                style: const TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Color(0xFF2E7D32),
-                                                ),
-                                              ),
-                                            ],
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primaryColor
+                                              .withOpacity(0.08),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
                                           ),
                                         ),
+                                        child: Text(
+                                          emp.department,
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.primaryColor,
+                                          ),
+                                        ),
+                                      ),
                                       const SizedBox(width: 6),
-                                      if (emp.employeeCode != null)
-                                        Text(
-                                          emp.employeeCode!,
-                                          style: AppTextStyles.caption,
-                                        ),
+                                      Text(
+                                        emp.employeeCode ?? '',
+                                        style: AppTextStyles.caption,
+                                      ),
                                     ],
                                   ),
                                 ],
                               ),
                             ),
-                            const Icon(
-                              Icons.chevron_right_rounded,
-                              color: AppTheme.textMuted,
+                            Column(
+                              children: [
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: AppTheme.textMuted,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'by ${emp.createdByName}',
+                                  style: const TextStyle(
+                                    fontSize: 9,
+                                    color: AppTheme.textMuted,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -820,8 +751,11 @@ class _AttendancePageState extends State<_AttendancePage> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today_rounded,
-                    color: AppTheme.primaryColor, size: 18),
+                const Icon(
+                  Icons.calendar_today_rounded,
+                  color: AppTheme.primaryColor,
+                  size: 18,
+                ),
                 const SizedBox(width: 10),
                 Text(
                   DateFormat('MMMM d, yyyy').format(_selectedDate),
@@ -838,14 +772,14 @@ class _AttendancePageState extends State<_AttendancePage> {
                     );
                     if (date != null) {
                       setState(() => _selectedDate = date);
-                      context
-                          .read<AttendanceProvider>()
-                          .setSelectedDate(date);
+                      context.read<AttendanceProvider>().setSelectedDate(date);
                     }
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
@@ -934,21 +868,28 @@ class _AttendancePageState extends State<_AttendancePage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(record.employeeName,
-                                    style: AppTextStyles.bodyBold),
-                                Text(record.department,
-                                    style: AppTextStyles.caption),
+                                Text(
+                                  record.employeeName,
+                                  style: AppTextStyles.bodyBold,
+                                ),
+                                Text(
+                                  record.department,
+                                  style: AppTextStyles.caption,
+                                ),
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
                                     if (record.loginTime != null) ...[
-                                      const Icon(Icons.login_rounded,
-                                          size: 12,
-                                          color: AppTheme.successColor),
+                                      const Icon(
+                                        Icons.login_rounded,
+                                        size: 12,
+                                        color: AppTheme.successColor,
+                                      ),
                                       const SizedBox(width: 3),
                                       Text(
-                                        DateFormat('hh:mm a')
-                                            .format(record.loginTime!),
+                                        DateFormat(
+                                          'hh:mm a',
+                                        ).format(record.loginTime!),
                                         style: const TextStyle(
                                           fontSize: 11,
                                           color: AppTheme.successColor,
@@ -958,13 +899,16 @@ class _AttendancePageState extends State<_AttendancePage> {
                                     ],
                                     if (record.logoutTime != null) ...[
                                       const SizedBox(width: 12),
-                                      const Icon(Icons.logout_rounded,
-                                          size: 12,
-                                          color: AppTheme.errorColor),
+                                      const Icon(
+                                        Icons.logout_rounded,
+                                        size: 12,
+                                        color: AppTheme.errorColor,
+                                      ),
                                       const SizedBox(width: 3),
                                       Text(
-                                        DateFormat('hh:mm a')
-                                            .format(record.logoutTime!),
+                                        DateFormat(
+                                          'hh:mm a',
+                                        ).format(record.logoutTime!),
                                         style: const TextStyle(
                                           fontSize: 11,
                                           color: AppTheme.errorColor,
@@ -989,9 +933,10 @@ class _AttendancePageState extends State<_AttendancePage> {
                             ),
                           ),
                           StatusBadge(
-                              status: record.isLoggedIn
-                                  ? 'logged_in'
-                                  : record.status),
+                            status: record.isLoggedIn
+                                ? 'logged_in'
+                                : record.status,
+                          ),
                         ],
                       ),
                     ),
@@ -1033,10 +978,7 @@ class _MiniStatCard extends StatelessWidget {
           ),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppTheme.textSecondary,
-            ),
+            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
           ),
         ],
       ),
@@ -1093,8 +1035,7 @@ class _SettingsPage extends StatelessWidget {
             _SettingsItem(
               icon: Icons.person_add_rounded,
               label: 'Create Manager Account',
-              onTap: () =>
-                  Navigator.pushNamed(context, '/create_manager'),
+              onTap: () => Navigator.pushNamed(context, '/create_manager'),
             ),
             const SizedBox(height: 8),
           ],
@@ -1153,14 +1094,20 @@ class _SettingsItem extends StatelessWidget {
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(width: 14),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: color)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
             const Spacer(),
-            Icon(Icons.chevron_right_rounded,
-                color: color.withOpacity(0.5), size: 20),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: color.withOpacity(0.5),
+              size: 20,
+            ),
           ],
         ),
       ),

@@ -15,10 +15,10 @@ class EmployeeProvider extends ChangeNotifier {
   String _searchQuery = '';
   String _filterDepartment = 'All';
 
-  // Stream subscription kept alive for real-time updates
-  StreamSubscription<List<EmployeeModel>>? _employeesSubscription;
+  StreamSubscription<List<EmployeeModel>>? _sub;
 
-  List<EmployeeModel> get employees => _filteredEmployees;
+  // ── Public getters ────────────────────────────────────────────────────────────
+  List<EmployeeModel> get employees => _filtered;
   List<EmployeeModel> get allEmployees => _employees;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -26,37 +26,45 @@ class EmployeeProvider extends ChangeNotifier {
   String get filterDepartment => _filterDepartment;
 
   List<String> get departments {
-    final depts = _employees.map((e) => e.department).toSet().toList();
-    depts.sort();
-    return ['All', ...depts];
+    final d =
+        _employees
+            .map((e) => e.department)
+            .where((d) => d.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    return ['All', ...d];
   }
 
-  List<EmployeeModel> get _filteredEmployees {
+  List<EmployeeModel> get _filtered {
     return _employees.where((emp) {
-      final matchesSearch =
-          _searchQuery.isEmpty ||
-          emp.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          emp.email.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          emp.department.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          emp.position.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesDept =
+      final q = _searchQuery.toLowerCase();
+      final matchSearch =
+          q.isEmpty ||
+          emp.name.toLowerCase().contains(q) ||
+          emp.email.toLowerCase().contains(q) ||
+          emp.department.toLowerCase().contains(q) ||
+          emp.position.toLowerCase().contains(q) ||
+          (emp.employeeCode?.toLowerCase().contains(q) ?? false);
+      final matchDept =
           _filterDepartment == 'All' || emp.department == _filterDepartment;
-      return matchesSearch && matchesDept;
+      return matchSearch && matchDept;
     }).toList();
   }
 
-  /// Call once from dashboard — stays alive and pushes all updates in real time
+  // ── Stream — open once and keep alive forever ─────────────────────────────────
   void listenToEmployees() {
-    _employeesSubscription?.cancel();
+    if (_sub != null) return; // already listening — never restart
+
     _isLoading = true;
     notifyListeners();
 
-    _employeesSubscription = _service.getEmployeesStream().listen(
-      (employees) {
-        _employees = employees;
+    _sub = _service.getEmployeesStream().listen(
+      (list) {
+        _employees = list;
         _isLoading = false;
         _error = null;
-        notifyListeners();
+        notifyListeners(); // every Consumer<EmployeeProvider> rebuilds instantly
       },
       onError: (e) {
         _error = e.toString();
@@ -66,15 +74,18 @@ class EmployeeProvider extends ChangeNotifier {
     );
   }
 
-  void setSearchQuery(String query) {
-    _searchQuery = query;
+  // ── Filters ───────────────────────────────────────────────────────────────────
+  void setSearchQuery(String q) {
+    _searchQuery = q;
     notifyListeners();
   }
 
-  void setFilterDepartment(String department) {
-    _filterDepartment = department;
+  void setFilterDepartment(String dept) {
+    _filterDepartment = dept;
     notifyListeners();
   }
+
+  // ── CRUD — stream reflects every Firestore write automatically ────────────────
 
   Future<EmployeeModel?> createEmployee({
     required String name,
@@ -94,7 +105,7 @@ class EmployeeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final employee = await _service.createEmployee(
+      final emp = await _service.createEmployee(
         name: name,
         email: email,
         phone: phone,
@@ -107,9 +118,8 @@ class EmployeeProvider extends ChangeNotifier {
         createdByName: createdByName,
         faceDescriptor: faceDescriptor,
       );
-      _isLoading = false;
-      notifyListeners();
-      return employee;
+      // stream callback will fire and clear isLoading + notifyListeners
+      return emp;
     } catch (e) {
       _isLoading = false;
       _error = e.toString();
@@ -133,8 +143,6 @@ class EmployeeProvider extends ChangeNotifier {
         data: data,
         newPhotoFile: newPhotoFile,
       );
-      _isLoading = false;
-      notifyListeners();
       return true;
     } catch (e) {
       _isLoading = false;
@@ -156,7 +164,7 @@ class EmployeeProvider extends ChangeNotifier {
   }
 
   Future<List<EmployeeModel>> getAllEmployeesForAttendance() async {
-    return await _service.getAllEmployees();
+    return _service.getAllEmployees();
   }
 
   void clearError() {
@@ -166,7 +174,7 @@ class EmployeeProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _employeesSubscription?.cancel();
+    _sub?.cancel();
     super.dispose();
   }
 }

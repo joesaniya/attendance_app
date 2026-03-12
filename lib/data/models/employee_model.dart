@@ -9,13 +9,13 @@ class EmployeeModel {
   final String position;
   final String address;
   final String? photoUrl;
-  final String? faceDescriptor; // Base64 encoded face data
+  final String? faceDescriptor;
   final DateTime joinDate;
   final DateTime createdAt;
   final String createdBy;
   final String createdByRole;
   final String createdByName;
-  final bool isActive;
+  final bool? isActive; // null = field never existed → treat as active
   final String? employeeCode;
 
   EmployeeModel({
@@ -33,50 +33,59 @@ class EmployeeModel {
     required this.createdBy,
     required this.createdByRole,
     required this.createdByName,
-    this.isActive = true,
+    this.isActive,
     this.employeeCode,
   });
 
+  /// Tolerant parser — every field has a safe fallback.
+  /// Works with pre-existing Firebase records that may be missing fields.
   factory EmployeeModel.fromMap(Map<String, dynamic> map, String docId) {
+    DateTime safeDate(dynamic v) {
+      if (v == null) return DateTime.now();
+      try {
+        return (v as dynamic).toDate() as DateTime;
+      } catch (_) {
+        return DateTime.now();
+      }
+    }
+
     return EmployeeModel(
       id: docId,
-      name: map['name'] ?? '',
-      email: map['email'] ?? '',
-      phone: map['phone'] ?? '',
-      department: map['department'] ?? '',
-      position: map['position'] ?? '',
-      address: map['address'] ?? '',
-      photoUrl: map['photoUrl'],
-      faceDescriptor: map['faceDescriptor'],
-      joinDate: (map['joinDate'] as dynamic)?.toDate() ?? DateTime.now(),
-      createdAt: (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
-      createdBy: map['createdBy'] ?? '',
-      createdByRole: map['createdByRole'] ?? '',
-      createdByName: map['createdByName'] ?? '',
-      isActive: map['isActive'] ?? true,
-      employeeCode: map['employeeCode'],
+      name: (map['name'] as String?) ?? '',
+      email: (map['email'] as String?) ?? '',
+      phone: (map['phone'] as String?) ?? '',
+      department: (map['department'] as String?) ?? '',
+      position: (map['position'] as String?) ?? '',
+      address: (map['address'] as String?) ?? '',
+      photoUrl: map['photoUrl'] as String?,
+      faceDescriptor: map['faceDescriptor'] as String?,
+      joinDate: safeDate(map['joinDate']),
+      createdAt: safeDate(map['createdAt']),
+      createdBy: (map['createdBy'] as String?) ?? '',
+      createdByRole: (map['createdByRole'] as String?) ?? '',
+      createdByName: (map['createdByName'] as String?) ?? '',
+      isActive: map['isActive'] as bool?, // null if field is missing
+      employeeCode: map['employeeCode'] as String?,
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'email': email,
-      'phone': phone,
-      'department': department,
-      'position': position,
-      'address': address,
-      'photoUrl': photoUrl,
-      'faceDescriptor': faceDescriptor,
-      'joinDate': joinDate,
-      'createdAt': createdAt,
-      'createdBy': createdBy,
-      'createdByRole': createdByRole,
-      'createdByName': createdByName,
-      'isActive': isActive,
-      'employeeCode': employeeCode,
-    };
-  }
+  Map<String, dynamic> toMap() => {
+    'name': name,
+    'email': email,
+    'phone': phone,
+    'department': department,
+    'position': position,
+    'address': address,
+    'photoUrl': photoUrl,
+    'faceDescriptor': faceDescriptor,
+    'joinDate': joinDate,
+    'createdAt': createdAt,
+    'createdBy': createdBy,
+    'createdByRole': createdByRole,
+    'createdByName': createdByName,
+    'isActive': isActive ?? true,
+    'employeeCode': employeeCode,
+  };
 
   EmployeeModel copyWith({
     String? id,
@@ -95,24 +104,22 @@ class EmployeeModel {
     String? createdByName,
     bool? isActive,
     String? employeeCode,
-  }) {
-    return EmployeeModel(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      email: email ?? this.email,
-      phone: phone ?? this.phone,
-      department: department ?? this.department,
-      position: position ?? this.position,
-      address: address ?? this.address,
-      photoUrl: photoUrl ?? this.photoUrl,
-      faceDescriptor: faceDescriptor ?? this.faceDescriptor,
-      joinDate: joinDate ?? this.joinDate,
-      createdAt: createdAt ?? this.createdAt,
-      createdBy: createdBy ?? this.createdBy,
-      createdByRole: createdByRole ?? this.createdByRole,
-      createdByName: createdByName ?? this.createdByName,
-      isActive: isActive ?? this.isActive,
-      employeeCode: employeeCode ?? this.employeeCode,
-    );
-  }
+  }) => EmployeeModel(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    email: email ?? this.email,
+    phone: phone ?? this.phone,
+    department: department ?? this.department,
+    position: position ?? this.position,
+    address: address ?? this.address,
+    photoUrl: photoUrl ?? this.photoUrl,
+    faceDescriptor: faceDescriptor ?? this.faceDescriptor,
+    joinDate: joinDate ?? this.joinDate,
+    createdAt: createdAt ?? this.createdAt,
+    createdBy: createdBy ?? this.createdBy,
+    createdByRole: createdByRole ?? this.createdByRole,
+    createdByName: createdByName ?? this.createdByName,
+    isActive: isActive ?? this.isActive,
+    employeeCode: employeeCode ?? this.employeeCode,
+  );
 }
