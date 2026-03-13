@@ -1,6 +1,10 @@
 // lib/screens/dashboard/admin_dashboard_screen.dart
 
+import 'dart:developer';
+
+import 'package:employee_attendance_app/data/services/attendance_pdf_service.dart';
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -10,6 +14,9 @@ import '../../providers/attendance_provider.dart';
 import '../../providers/employee_provider.dart';
 import '../../widgets/app_widgets.dart';
 import '../../data/models/attendance_model.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -817,6 +824,532 @@ class _AttendancePage extends StatefulWidget {
 
 class _AttendancePageState extends State<_AttendancePage> {
   DateTime _selectedDate = DateTime.now();
+  bool _isGeneratingPdf = false;
+
+  // ── PDF Download ──────────────────────────────────────────────────────────
+  Future<void> _downloadPdf(BuildContext context) async {
+    final att = context.read<AttendanceProvider>();
+    final auth = context.read<AuthProvider>();
+
+    if (att.filteredAttendance.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No attendance records to export'),
+          backgroundColor: AppTheme.warningColor,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isGeneratingPdf = true);
+
+    try {
+      // 1. Generate PDF bytes
+      final pdfBytes = await AttendancePdfService.generateAttendanceReport(
+        records: att.filteredAttendance,
+        reportDate: _selectedDate,
+        downloadedBy: auth.currentUser?.name ?? 'Admin',
+      );
+
+      // 2. Build filename with date stamp
+      final d = _selectedDate;
+      final fileName =
+          'attendance_${d.year}'
+          '-${d.month.toString().padLeft(2, '0')}'
+          '-${d.day.toString().padLeft(2, '0')}.pdf';
+
+      // 3. Save to device storage
+      final savedPath = await _saveToDevice(pdfBytes, fileName);
+
+      if (!mounted) return;
+
+      if (savedPath != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'PDF saved to Downloads!',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        savedPath,
+                        style: const TextStyle(fontSize: 10),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppTheme.successColor,
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save PDF: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGeneratingPdf = false);
+    }
+  }
+
+  /// Saves PDF bytes directly to the device's Downloads folder.
+  /// Returns the saved file path on success, null if permission denied.
+  Future<String?> _saveToDevice(List<int> bytes, String fileName) async {
+    if (Platform.isAndroid) {
+      // ── Android ────────────────────────────────────────────────────────
+      // Android 13+ (SDK 33): no WRITE_EXTERNAL_STORAGE needed for Downloads.
+      // Android 10–12 (SDK 29–32): permission required.
+      // Android 9 and below (SDK ≤ 28): permission required.
+      bool needsPermission = false;
+      try {
+        final sdkResult = await Process.run('getprop', [
+          'ro.build.version.sdk',
+        ]);
+        final sdk = int.tryParse(sdkResult.stdout.toString().trim()) ?? 33;
+        needsPermission = sdk <= 32;
+      } catch (_) {
+        needsPermission = false; // assume modern Android
+      }
+
+      if (needsPermission) {
+        final status = await Permission.storage.request();
+        if (!status.isGranted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Storage permission denied.\n'
+                  'Go to Settings → App → Permissions → Storage and allow it.',
+                ),
+                backgroundColor: AppTheme.warningColor,
+                action: SnackBarAction(
+                  label: 'Settings',
+                  textColor: Colors.white,
+                  onPressed: () => openAppSettings(),
+                ),
+              ),
+            );
+          }
+          return null;
+        }
+      }
+
+      // Write to /storage/emulated/0/Download/ — visible in Files app
+      final downloadsPath = '/storage/emulated/0/Download';
+      final dir = Directory(downloadsPath);
+      if (!await dir.exists()) await dir.create(recursive: true);
+
+      final file = File('$downloadsPath/$fileName');
+      await file.writeAsBytes(bytes, flush: true);
+      return file.path;
+    } else if (Platform.isIOS) {
+      // ── iOS ────────────────────────────────────────────────────────────
+      // Saves to app Documents directory.
+      // Accessible via Files app → Browse → On My iPhone → <AppName>
+      final docsDir = await getApplicationDocumentsDirectory();
+      final file = File('${docsDir.path}/$fileName');
+      await file.writeAsBytes(bytes, flush: true);
+      return file.path;
+    } else {
+      // ── Desktop / other ────────────────────────────────────────────────
+      final dir =
+          await getDownloadsDirectory() ??
+          await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/$fileName');
+      await file.writeAsBytes(bytes, flush: true);
+      return file.path;
+    }
+  }
+
+  Future<void> _downloadPdf1(BuildContext context) async {
+    log('generating PDF for ${_selectedDate.toIso8601String()}');
+    final att = context.read<AttendanceProvider>();
+    final auth = context.read<AuthProvider>();
+
+    if (att.filteredAttendance.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No attendance records to export'),
+          backgroundColor: AppTheme.warningColor,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isGeneratingPdf = true);
+
+    try {
+      final pdfBytes = await AttendancePdfService.generateAttendanceReport(
+        records: att.filteredAttendance,
+        reportDate: _selectedDate,
+        downloadedBy: auth.currentUser?.name ?? 'Admin',
+      );
+
+      // Uses the `printing` package — opens system share/print sheet on
+      // Android & iOS; triggers browser download on web.
+      await Printing.sharePdf(
+        bytes: pdfBytes,
+        filename:
+            'attendance_report_${_selectedDate.year}'
+            '-${_selectedDate.month.toString().padLeft(2, '0')}'
+            '-${_selectedDate.day.toString().padLeft(2, '0')}.pdf',
+      );
+    } catch (e) {
+      if (mounted) {
+        log('PDF generation error: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate PDF: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGeneratingPdf = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // ── Date Filter + Download Button ────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          child: GlassCard(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today_rounded,
+                  color: AppTheme.primaryColor,
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  _fmtHeaderDate(_selectedDate),
+                  style: AppTextStyles.bodyBold,
+                ),
+                const Spacer(),
+
+                // Change Date button
+                GestureDetector(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (date != null) {
+                      setState(() => _selectedDate = date);
+                      context.read<AttendanceProvider>().setSelectedDate(date);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Change Date',
+                      style: TextStyle(
+                        color: AppTheme.primaryColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                // ── PDF Download button ────────────────────────────────
+                GestureDetector(
+                  onTap: _isGeneratingPdf ? null : () => _downloadPdf(context),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: _isGeneratingPdf
+                          ? null
+                          : const LinearGradient(
+                              colors: [Color(0xFF6C63FF), Color(0xFF4F46E5)],
+                            ),
+                      color: _isGeneratingPdf ? AppTheme.borderColor : null,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: _isGeneratingPdf
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withOpacity(0.30),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_isGeneratingPdf)
+                          const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppTheme.textMuted,
+                            ),
+                          )
+                        else
+                          const Icon(
+                            Icons.picture_as_pdf_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _isGeneratingPdf ? 'Generating…' : 'Export PDF',
+                          style: TextStyle(
+                            color: _isGeneratingPdf
+                                ? AppTheme.textMuted
+                                : Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // ── Stats Row ────────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Consumer<AttendanceProvider>(
+            builder: (context, att, _) => Row(
+              children: [
+                Expanded(
+                  child: _MiniStatCard(
+                    label: 'Present',
+                    value: att.presentCount.toString(),
+                    color: AppTheme.successColor,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MiniStatCard(
+                    label: 'Absent',
+                    value: att.absentCount.toString(),
+                    color: AppTheme.errorColor,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MiniStatCard(
+                    label: 'Incomplete',
+                    value: att.incompleteCount.toString(),
+                    color: AppTheme.warningColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── Attendance List ──────────────────────────────────────────────
+        Expanded(
+          child: Consumer<AttendanceProvider>(
+            builder: (context, att, _) {
+              if (att.filteredAttendance.isEmpty) {
+                return RefreshIndicator(
+                  color: AppTheme.accentColor,
+                  onRefresh: () => att.refresh(),
+                  child: ListView(
+                    children: const [
+                      EmptyState(
+                        icon: Icons.event_busy_rounded,
+                        title: 'No Records',
+                        subtitle: 'No attendance records for this date.',
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return RefreshIndicator(
+                color: AppTheme.accentColor,
+                onRefresh: () => att.refresh(),
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  itemCount: att.filteredAttendance.length,
+                  itemBuilder: (context, index) {
+                    final record = att.filteredAttendance[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: GlassCard(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            AppAvatar(
+                              imageUrl: record.employeePhotoUrl,
+                              name: record.employeeName,
+                              size: 44,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    record.employeeName,
+                                    style: AppTextStyles.bodyBold,
+                                  ),
+                                  Text(
+                                    record.department,
+                                    style: AppTextStyles.caption,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      if (record.loginTime != null) ...[
+                                        const Icon(
+                                          Icons.login_rounded,
+                                          size: 12,
+                                          color: AppTheme.successColor,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          DateFormat(
+                                            'hh:mm a',
+                                          ).format(record.loginTime!),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppTheme.successColor,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                      if (record.logoutTime != null) ...[
+                                        const SizedBox(width: 12),
+                                        const Icon(
+                                          Icons.logout_rounded,
+                                          size: 12,
+                                          color: AppTheme.errorColor,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          DateFormat(
+                                            'hh:mm a',
+                                          ).format(record.logoutTime!),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppTheme.errorColor,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                      if (record.workHours != null) ...[
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          record.formattedWorkHours,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppTheme.textMuted,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            StatusBadge(
+                              status: record.isLoggedIn
+                                  ? 'logged_in'
+                                  : record.status,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _fmtHeaderDate(DateTime dt) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+  }
+}
+
+/*class _AttendancePage extends StatefulWidget {
+  @override
+  State<_AttendancePage> createState() => _AttendancePageState();
+}
+
+class _AttendancePageState extends State<_AttendancePage> {
+  DateTime _selectedDate = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
@@ -1042,7 +1575,7 @@ class _AttendancePageState extends State<_AttendancePage> {
     );
   }
 }
-
+*/
 class _MiniStatCard extends StatelessWidget {
   final String label;
   final String value;
@@ -1125,7 +1658,11 @@ class _SettingsPage extends StatelessWidget {
                       size: 76,
                     ),
                   ),
-                ).animate().scale(delay: 100.ms, duration: 400.ms, curve: Curves.easeOutBack),
+                ).animate().scale(
+                  delay: 100.ms,
+                  duration: 400.ms,
+                  curve: Curves.easeOutBack,
+                ),
                 const SizedBox(width: 20),
                 Expanded(
                   child: Column(
@@ -1153,7 +1690,10 @@ class _SettingsPage extends StatelessWidget {
                       ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.05),
                       const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.primaryColor,
                           borderRadius: BorderRadius.circular(8),
@@ -1205,7 +1745,8 @@ class _SettingsPage extends StatelessWidget {
                     icon: Icons.person_add_rounded,
                     title: 'Create Manager Account',
                     subtitle: 'Provision a new administrative user',
-                    onTap: () => Navigator.pushNamed(context, '/create_manager'),
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/create_manager'),
                     iconColor: const Color(0xFF6366F1), // Elegant Indigo
                     iconBgColor: const Color(0xFFEEF2FF),
                   ).animate().slideY(begin: 0.1, delay: 550.ms).fadeIn(),
@@ -1333,7 +1874,11 @@ class _SettingsPage extends StatelessWidget {
             const Text(
               'Sign Out',
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: -0.5),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 24,
+                letterSpacing: -0.5,
+              ),
             ),
           ],
         ),
@@ -1354,7 +1899,9 @@ class _SettingsPage extends StatelessWidget {
                   onPressed: () => Navigator.pop(ctx),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     backgroundColor: AppTheme.backgroundLight,
                   ),
                   child: const Text(
@@ -1379,7 +1926,9 @@ class _SettingsPage extends StatelessWidget {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   child: const Text(
                     'Sign Out',
@@ -1421,7 +1970,9 @@ class _PremiumSettingsTile extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDestructive ? AppTheme.errorColor.withOpacity(0.15) : AppTheme.borderColor,
+          color: isDestructive
+              ? AppTheme.errorColor.withOpacity(0.15)
+              : AppTheme.borderColor,
           width: 1,
         ),
         boxShadow: [
@@ -1464,7 +2015,9 @@ class _PremiumSettingsTile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: isDestructive ? AppTheme.errorColor : AppTheme.textPrimary,
+                          color: isDestructive
+                              ? AppTheme.errorColor
+                              : AppTheme.textPrimary,
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -1483,7 +2036,9 @@ class _PremiumSettingsTile extends StatelessWidget {
                 // Arrow
                 Icon(
                   Icons.arrow_forward_ios_rounded,
-                  color: (isDestructive ? AppTheme.errorColor : AppTheme.textMuted).withOpacity(0.4),
+                  color:
+                      (isDestructive ? AppTheme.errorColor : AppTheme.textMuted)
+                          .withOpacity(0.4),
                   size: 14,
                 ),
                 const SizedBox(width: 4),
