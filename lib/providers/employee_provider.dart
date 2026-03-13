@@ -1,4 +1,7 @@
 // lib/providers/employee_provider.dart
+//
+// Added: isNameDuplicate() — checks whether a given name already exists
+// in the local employee list (case-insensitive).
 
 import 'dart:async';
 import 'dart:io';
@@ -10,40 +13,27 @@ import '../data/models/employee_model.dart';
 class EmployeeProvider extends ChangeNotifier {
   final EmployeeService _service = EmployeeService();
 
-  // ── State ─────────────────────────────────────────────────────────────────────
-
   List<EmployeeModel> _employees = [];
   bool _isLoading = false;
   String? _error;
   String _searchQuery = '';
   String _filterDepartment = 'All';
 
-  // Pagination state
-  /// The last Firestore document yielded — used as cursor for "load more"
   DocumentSnapshot? _lastDocument;
-  /// Whether additional pages are available from Firestore
   bool _hasMore = true;
-  /// True while a background "load more" call is in flight
   bool _isLoadingMore = false;
 
-  /// Number of employees to fetch per paginated batch
   static const int _pageSize = 20;
 
-  // Real-time stream subscription — kept alive for Firestore push updates
   StreamSubscription<List<EmployeeModel>>? _sub;
 
-  // ── Public getters ────────────────────────────────────────────────────────────
-
-  /// Filtered employee list (search + department filter applied)
   List<EmployeeModel> get employees => _filtered;
   List<EmployeeModel> get allEmployees => _employees;
   bool get isLoading => _isLoading;
-  /// True while a background "load more" page is in flight
   bool get isLoadingMore => _isLoadingMore;
   String? get error => _error;
   String get searchQuery => _searchQuery;
   String get filterDepartment => _filterDepartment;
-  /// False when all pages have been fetched — hides the spinner at list end
   bool get hasMore => _hasMore;
 
   List<String> get departments {
@@ -73,12 +63,18 @@ class EmployeeProvider extends ChangeNotifier {
     }).toList();
   }
 
-  // ── Real-time stream — open once and keep alive ───────────────────────────────
+  // ── Duplicate name check ──────────────────────────────────────────────────────
+  /// Returns true if [name] already exists in the loaded employee list
+  /// (case-insensitive, trimmed).
+  Future<bool> isNameDuplicate(String name) async {
+    final normalised = name.trim().toLowerCase();
+    return _employees.any((e) => e.name.trim().toLowerCase() == normalised);
+  }
 
-  /// Starts a persistent Firestore real-time stream for the employee list.
-  /// Safe to call multiple times — second call is a no-op if already listening.
+  // ── Real-time stream ──────────────────────────────────────────────────────────
+
   void listenToEmployees() {
-    if (_sub != null) return; // already listening — never restart
+    if (_sub != null) return;
 
     _isLoading = true;
     notifyListeners();
@@ -88,8 +84,6 @@ class EmployeeProvider extends ChangeNotifier {
         _employees = list;
         _isLoading = false;
         _error = null;
-        // Every Consumer<EmployeeProvider> rebuilds instantly due to
-        // Firestore push notifications — no polling needed
         notifyListeners();
       },
       onError: (e) {
@@ -102,14 +96,7 @@ class EmployeeProvider extends ChangeNotifier {
 
   // ── Pagination ────────────────────────────────────────────────────────────────
 
-  /// Loads the next page of employees from Firestore using cursor-based pagination.
-  ///
-  /// - Skips if already loading more or no additional pages exist.
-  /// - Appends new employees to the existing list.
-  /// - Updates [_lastDocument] so the next call continues from the right cursor.
-  /// - Sets [_hasMore] to false when the last page is reached.
   Future<void> loadMoreEmployees() async {
-    // Guard: avoid duplicate in-flight requests or loading past the last page
     if (_isLoadingMore || !_hasMore) return;
 
     _isLoadingMore = true;
@@ -125,9 +112,10 @@ class EmployeeProvider extends ChangeNotifier {
       _lastDocument = result['lastDoc'] as DocumentSnapshot?;
       _hasMore = result['hasMore'] as bool;
 
-      // Avoid duplicates — merge by ID
       final existingIds = _employees.map((e) => e.id).toSet();
-      final fresh = newEmployees.where((e) => !existingIds.contains(e.id)).toList();
+      final fresh = newEmployees
+          .where((e) => !existingIds.contains(e.id))
+          .toList();
       _employees = [..._employees, ...fresh];
     } catch (e) {
       _error = e.toString();
@@ -139,24 +127,12 @@ class EmployeeProvider extends ChangeNotifier {
 
   // ── Refresh ───────────────────────────────────────────────────────────────────
 
-  /// Resets pagination state and re-starts the real-time stream from scratch.
-  ///
-  /// Called by the [RefreshIndicator] in the employee list screen.
-  /// Cancels the existing Firestore subscription and re-subscribes, which
-  /// triggers an immediate snapshot push — so the UI updates without delay.
   Future<void> refresh() async {
-    // Cancel the existing subscription so we get a fresh snapshot on re-listen
     _sub?.cancel();
     _sub = null;
-
-    // Reset pagination cursors
     _lastDocument = null;
     _hasMore = true;
-
-    // Re-open the real-time stream — listenToEmployees is idempotent when _sub is null
     listenToEmployees();
-
-    // Wait briefly so RefreshIndicator shows before the UI settles
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
@@ -172,7 +148,7 @@ class EmployeeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── CRUD — stream reflects every Firestore write automatically ────────────────
+  // ── CRUD ──────────────────────────────────────────────────────────────────────
 
   Future<EmployeeModel?> createEmployee({
     required String name,
@@ -205,7 +181,6 @@ class EmployeeProvider extends ChangeNotifier {
         createdByName: createdByName,
         faceDescriptor: faceDescriptor,
       );
-      // stream callback will fire and clear isLoading + notifyListeners
       return emp;
     } catch (e) {
       _isLoading = false;
