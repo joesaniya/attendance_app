@@ -72,13 +72,13 @@ class FaceDetectionService {
 
   // ── Thresholds ────────────────────────────────────────────────────────────
   // Guard A: cosine similarity (1.0 = identical vectors)
-  static const double _cosineThreshold = 0.93;
+  static const double _cosineThreshold = 0.98; // tightened from 0.93
 
   // Guard B: normalised Euclidean distance (0.0 = identical)
-  static const double _euclideanThreshold = 0.28;
+  static const double _euclideanThreshold = 0.12; // tightened from 0.28
 
   // Guard C: geometric ratio distance (0.0 = identical face structure)
-  static const double _ratioThreshold = 0.15;
+  static const double _ratioThreshold = 0.07; // tightened from 0.15
 
   // Liveness: maximum head rotation allowed
   static const double _maxYawDeg = 12.0;

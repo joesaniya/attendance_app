@@ -19,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _showAdminLogin = false;
 
   @override
   void dispose() {
@@ -165,161 +166,219 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
 
-                  const SizedBox(height: 48),
-
-                  // Login Form Card
-                  GlassCard(
-                        color: AppTheme.surfaceLight,
-                        padding: const EdgeInsets.all(32),
-                        borderRadius: 24,
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome Back',
-                                style: GoogleFonts.inter(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimary,
-                                  letterSpacing: -0.5,
-                                ),
-                              ).animate().fadeIn(
-                                delay: 300.ms,
-                                duration: 600.ms,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Sign in to your account',
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  color: AppTheme.textSecondary,
-                                ),
-                              ).animate().fadeIn(
-                                delay: 400.ms,
-                                duration: 600.ms,
-                              ),
-                              const SizedBox(height: 32),
-
-                              // Email Field
-                              AppTextField(
-                                label: 'Email Address',
-                                hint: 'Enter your email',
-                                controller: _emailController,
-                                prefixIcon: Icons.email_outlined,
-                                keyboardType: TextInputType.emailAddress,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty)
-                                    return 'Please enter your email';
-                                  if (!value.contains('@'))
-                                    return 'Please enter a valid email';
-                                  return null;
-                                },
-                              ).animate().fadeIn(
-                                delay: 500.ms,
-                                duration: 600.ms,
-                              ),
-                              const SizedBox(height: 24),
-
-                              // Password Field
-                              AppTextField(
-                                label: 'Password',
-                                hint: '••••••••',
-                                controller: _passwordController,
-                                prefixIcon: Icons.lock_outline_rounded,
-                                obscureText: _obscurePassword,
-                                suffixWidget: GestureDetector(
-                                  onTap: () => setState(
-                                    () => _obscurePassword = !_obscurePassword,
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                      size: 20,
-                                      color: AppTheme.textMuted,
-                                    ),
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty)
-                                    return 'Please enter your password';
-                                  return null;
-                                },
-                              ).animate().fadeIn(
-                                delay: 600.ms,
-                                duration: 600.ms,
-                              ),
-                              const SizedBox(height: 32),
-
-                              // Login Button
-                              Consumer<AuthProvider>(
-                                builder: (context, auth, _) => GradientButton(
-                                  label: 'Sign In',
-                                  icon: Icons.login_rounded,
-                                  isLoading: auth.isLoading,
-                                  onTap: _handleLogin,
-                                ),
-                              ).animate().fadeIn(
-                                delay: 700.ms,
-                                duration: 600.ms,
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                      .animate()
-                      .fadeIn(delay: 300.ms, duration: 600.ms)
-                      .slideY(begin: 0.1, end: 0),
-
                   const SizedBox(height: 32),
 
-                  // Employee Shortcut
-                  Column(
-                    children: [
-                      Text(
-                        'Are you an employee?',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.white.withOpacity(0.7),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.pushNamed(
-                          context,
-                          '/employee_attendance',
-                        ),
-                        icon: const Icon(
-                          Icons.qr_code_scanner_rounded,
-                          size: 20,
-                        ),
-                        label: const Text('Mark Attendance'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.accentColor,
-                          side: BorderSide(
-                            color: AppTheme.accentColor.withOpacity(0.5),
-                            width: 1.5,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 14,
-                          ),
-                          textStyle: GoogleFonts.inter(
+                  if (!_showAdminLogin) ...[
+                    // Admin Login Toggle Button
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () => setState(() => _showAdminLogin = true),
+                        icon: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 18),
+                        label: Text(
+                          'Admin Login',
+                          style: GoogleFonts.inter(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            letterSpacing: 0.2,
+                            color: Colors.white,
                           ),
                         ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor: Colors.white.withOpacity(0.1),
+                        ),
+                      ).animate().fadeIn(delay: 300.ms, duration: 600.ms),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Attendance Section (Main View)
+                    GlassCard(
+                      color: AppTheme.surfaceLight,
+                      padding: const EdgeInsets.all(32),
+                      borderRadius: 24,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.accentColor.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.qr_code_scanner_rounded,
+                              size: 48,
+                              color: AppTheme.accentColor,
+                            ),
+                          ).animate().scale(delay: 400.ms, duration: 400.ms),
+                          const SizedBox(height: 24),
+                          Text(
+                            'Employee Attendance',
+                            style: GoogleFonts.inter(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                              letterSpacing: -0.5,
+                            ),
+                            textAlign: TextAlign.center,
+                          ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Mark your daily attendance',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: AppTheme.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+                          const SizedBox(height: 48),
+
+                          // Mark Attendance Button
+                          GradientButton(
+                            label: 'Mark Attendance',
+                            icon: Icons.qr_code_scanner_rounded,
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              '/employee_attendance',
+                            ),
+                          ).animate().fadeIn(delay: 700.ms, duration: 600.ms).slideY(begin: 0.1, end: 0),
+                        ],
                       ),
-                    ],
-                  ).animate().fadeIn(delay: 800.ms, duration: 600.ms),
+                    ).animate().fadeIn(delay: 300.ms, duration: 600.ms).slideY(begin: 0.1, end: 0),
+                  ] else ...[
+                    // Back to Attendance
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => setState(() => _showAdminLogin = false),
+                        icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
+                        label: Text(
+                          'Back to Attendance',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor: Colors.white.withOpacity(0.1),
+                        ),
+                      ).animate().fadeIn(duration: 400.ms),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Login Form Card
+                    GlassCard(
+                      color: AppTheme.surfaceLight,
+                      padding: const EdgeInsets.all(32),
+                      borderRadius: 24,
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Admin Login',
+                              style: GoogleFonts.inter(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                                letterSpacing: -0.5,
+                              ),
+                            ).animate().fadeIn(
+                              delay: 100.ms,
+                              duration: 600.ms,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Sign in to your account',
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ).animate().fadeIn(
+                              delay: 200.ms,
+                              duration: 600.ms,
+                            ),
+                            const SizedBox(height: 32),
+
+                            // Email Field
+                            AppTextField(
+                              label: 'Email Address',
+                              hint: 'Enter your email',
+                              controller: _emailController,
+                              prefixIcon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (value) {
+                                if (value == null || value.isEmpty)
+                                  return 'Please enter your email';
+                                if (!value.contains('@'))
+                                  return 'Please enter a valid email';
+                                return null;
+                              },
+                            ).animate().fadeIn(
+                              delay: 300.ms,
+                              duration: 600.ms,
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Password Field
+                            AppTextField(
+                              label: 'Password',
+                              hint: '••••••••',
+                              controller: _passwordController,
+                              prefixIcon: Icons.lock_outline_rounded,
+                              obscureText: _obscurePassword,
+                              suffixWidget: GestureDetector(
+                                onTap: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                    size: 20,
+                                    color: AppTheme.textMuted,
+                                  ),
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty)
+                                  return 'Please enter your password';
+                                return null;
+                              },
+                            ).animate().fadeIn(
+                              delay: 400.ms,
+                              duration: 600.ms,
+                            ),
+                            const SizedBox(height: 32),
+
+                            // Login Button
+                            Consumer<AuthProvider>(
+                              builder: (context, auth, _) => GradientButton(
+                                label: 'Sign In',
+                                icon: Icons.login_rounded,
+                                isLoading: auth.isLoading,
+                                onTap: _handleLogin,
+                              ),
+                            ).animate().fadeIn(
+                              delay: 500.ms,
+                              duration: 600.ms,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+                  ],
                 ],
               ),
             ),
